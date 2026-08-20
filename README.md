@@ -22,7 +22,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 
 I wanted Windows Explorer on my Mac. Not "a file manager with Windows-ish styling", but the actual thing: the tab strip, the command bar, the breadcrumb address bar, `Ctrl+C` / `Ctrl+V` / `F2` / `Alt+Left`, and the Fluent icons.
 
-So I built it. No Electron, no dependencies, no package manager. One `swiftc` invocation produces a 2.4 MB native app.
+So I built it. No Electron, no dependencies, no package manager. One `swiftc` invocation produces a 3 MB native app.
 
 ## Highlights
 
