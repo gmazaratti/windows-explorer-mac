@@ -185,6 +185,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Windows' Win+D: hide every app so the desktop itself is showing, and put
+/// them back when it is pressed again.
+enum DesktopReveal {
+    private static var hiddenApps: [NSRunningApplication] = []
+
+    static func toggle() {
+        if !hiddenApps.isEmpty {
+            hiddenApps.forEach { $0.unhide() }
+            hiddenApps = []
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let others = NSWorkspace.shared.runningApplications.filter {
+            $0.activationPolicy == .regular
+                && !$0.isHidden
+                && $0.processIdentifier != NSRunningApplication.current.processIdentifier
+        }
+        hiddenApps = others
+        others.forEach { $0.hide() }
+        NSApp.hide(nil)
+    }
+}
+
 // MARK: - Windows File Explorer key bindings
 //
 // Every binding is looked up in Settings, so it can be re-mapped. Both Ctrl
@@ -313,6 +336,7 @@ enum Keys {
         case .newWindow: AppState.shared.openNewWindow(at: ex.tab.location)
         case .goHome: ex.go(to: .home)
         case .goDesktop: ex.go(to: Places.desktop)
+        case .showDesktop: DesktopReveal.toggle()
         case .goDownloads: ex.go(to: Places.downloads)
         case .goDocuments: ex.go(to: Places.documents)
         case .goPictures: ex.go(to: Places.pictures)

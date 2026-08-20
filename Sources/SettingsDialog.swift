@@ -214,7 +214,7 @@ struct SettingsDialog: View {
         conflictNote = nil
         KeyCapture.shared.pending = { chord in
             if let other = settings.conflict(for: chord, excluding: command) {
-                conflictNote = "\(chord.display) was used by “\(other.title)” — it has been reassigned."
+                conflictNote = "\(chord.display) was used by “\(other.title)”, so it has been reassigned."
             }
             settings.setChord(chord, for: command)
             capturing = nil
@@ -502,7 +502,7 @@ struct FolderIconDialog: View {
     ]
 
     var body: some View {
-        WinDialog(title: "Change icon — \(item.displayName)", width: 440, onClose: onClose) {
+        WinDialog(title: "Change icon: \(item.displayName)", width: 440, onClose: onClose) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 16) {
                     CustomFolderIcon(style: style, size: 48)

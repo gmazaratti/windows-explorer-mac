@@ -153,8 +153,10 @@ enum SelfTest {
 
         // Type-ahead
         ex.go(to: root)
+        ex.resetTypeAhead()
         send(ex, "b")
-        check("type-ahead jumps to a name",
+        let diag = "buf=\(ex.typeAhead) items=\(ex.tab.items.map(\.name)) sel=\(ex.selectedItems.map(\.name))"
+        check("type-ahead jumps to a name [\(diag)]",
               ex.selectedItems.first?.name.lowercased().hasPrefix("b") == true)
 
         // Sorting
@@ -180,10 +182,12 @@ enum SelfTest {
         // Go-to-folder shortcuts
         settings.resetAllChords()
         ex.go(to: root)
-        send(ex, "d", ctrl: true)
-        check("Ctrl+D / Cmd+D goes to the Desktop",
+        send(ex, "d", ctrl: true, shift: true)
+        check("Ctrl+Shift+D goes to the Desktop folder",
               ex.currentDirectory?.path == Places.desktop.path)
-        check("Ctrl+D no longer deletes", settings.chords(for: .delete).allSatisfy { $0.char != "d" })
+        check("Ctrl+D shows the desktop instead of deleting",
+              settings.chords(for: .showDesktop).contains(KeyChord(char: "d", ctrl: true))
+              && settings.chords(for: .delete).allSatisfy { $0.char != "d" })
         send(ex, "h", ctrl: true, shift: true)
         check("Ctrl+Shift+H goes Home", ex.tab.location == .home)
         ex.go(to: root)

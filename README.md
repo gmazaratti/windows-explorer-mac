@@ -6,7 +6,7 @@
 
 **The Windows 11 File Explorer, rebuilt natively for macOS.**
 
-Same layout, same Fluent iconography, same keyboard shortcuts — driving the real macOS filesystem.
+Same layout, same Fluent iconography, same keyboard shortcuts, driving the real macOS filesystem.
 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
@@ -18,23 +18,21 @@ Same layout, same Fluent iconography, same keyboard shortcuts — driving the re
 
 </div>
 
----
-
 ## Why
 
-I wanted Windows Explorer on my Mac — not "a file manager with Windows-ish styling", but the actual thing: the tab strip, the command bar, the breadcrumb address bar, `Ctrl+C` / `Ctrl+V` / `F2` / `Alt+←`, and the Fluent icons.
+I wanted Windows Explorer on my Mac. Not "a file manager with Windows-ish styling", but the actual thing: the tab strip, the command bar, the breadcrumb address bar, `Ctrl+C` / `Ctrl+V` / `F2` / `Alt+Left`, and the Fluent icons.
 
-So I built it. No Electron, no dependencies, no package manager — one `swiftc` invocation produces a 2.4 MB native app.
+So I built it. No Electron, no dependencies, no package manager. One `swiftc` invocation produces a 2.4 MB native app.
 
 ## Highlights
 
 |  |  |
 |---|---|
 | **Pixel-faithful chrome** | Tab strip with Windows caption buttons drawn where the traffic lights normally go, breadcrumb address bar with sibling drop-downs, command bar, status bar. Colours come from the WinUI 3 dark and light palettes. |
-| **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid — including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
+| **Redrawn Fluent icons** | Segoe Fluent Icons isn't licensed onto macOS, so every glyph is redrawn as vector geometry on Windows' own 16pt design grid, including the two-tone accent treatment on cut, copy, paste, rename, share, sort and view. |
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. |
-| **It actually does the work** | Copy, cut/move, paste with `- Copy` conflict naming, rename, ZIP, shortcuts, Recycle Bin and permanent delete — all with undo/redo, and drag-and-drop to and from Finder. |
+| **It actually does the work** | Copy, cut and move, paste with `- Copy` conflict naming, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo, plus drag and drop to and from Finder. |
 
 <div align="center">
 <img src="docs/details.png" width="440" alt="Details view"> <img src="docs/icons-view.png" width="440" alt="Large icons view with thumbnails">
@@ -43,7 +41,7 @@ So I built it. No Electron, no dependencies, no package manager — one `swiftc`
 
 ## Build
 
-Requires only the Xcode Command Line Tools — no Xcode project, no Node, no Homebrew.
+Requires only the Xcode Command Line Tools. No Xcode project, no Node, no Homebrew.
 
 ```bash
 git clone https://github.com/gmazaratti/windows-explorer-mac.git
@@ -58,7 +56,7 @@ To keep it around:
 cp -R "build/File Explorer.app" /Applications/
 ```
 
-> macOS asks permission the first time the app reads Desktop, Documents, Downloads or a removable volume. Until you allow it, those folders list as empty — that's macOS, not the app.
+> macOS asks permission the first time the app reads Desktop, Documents, Downloads or a removable volume. Until you allow it, those folders list as empty. That is macOS, not the app.
 
 ## Keyboard shortcuts
 
@@ -67,7 +65,7 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 <table>
 <tr><td valign="top">
 
-**Clipboard & files**
+**Clipboard and files**
 
 | Shortcut | Action |
 |---|---|
@@ -76,7 +74,7 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 | `Ctrl+V` | Paste |
 | `Ctrl+Shift+V` | Paste shortcut |
 | `Ctrl+Shift+C` | Copy as path |
-| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |
+| `Ctrl+Z` / `Ctrl+Y` | Undo, redo |
 | `F2` | Rename |
 | `Delete` | Recycle Bin |
 | `Shift+Delete` | Delete permanently |
@@ -90,51 +88,54 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 
 | Shortcut | Action |
 |---|---|
-| `Alt+←` / `Alt+→` | Back / forward |
-| `Alt+↑` | Up one level |
+| `Alt+Left` / `Alt+Right` | Back, forward |
+| `Alt+Up` | Up one level |
 | `Backspace` | Back |
 | `F5` / `Ctrl+R` | Refresh |
 | `Ctrl+L` / `Alt+D` / `F4` | Address bar |
 | `Ctrl+F` / `F3` | Search |
-| `Ctrl+D` | Go to Desktop |
+| `Ctrl+D` | Show desktop (Win+D) |
+| `Ctrl+Shift+D` | Go to Desktop folder |
 | `Ctrl+Shift+H` | Go Home |
 | `Ctrl+Shift+J` | Go to Downloads |
 | Type letters | Type-ahead jump |
 
 </td><td valign="top">
 
-**View, tabs & windows**
+**View, tabs and windows**
 
 | Shortcut | Action |
 |---|---|
-| `Ctrl+Shift+1`…`8` | The eight view modes |
+| `Ctrl+Shift+1` to `8` | The eight view modes |
 | `Ctrl+Scroll` | Cycle icon sizes |
-| `Ctrl+T` / `Ctrl+W` | New / close tab |
+| `Ctrl+T` / `Ctrl+W` | New tab, close tab |
 | `Ctrl+Tab` | Next tab |
-| `Ctrl+1`…`9` | Jump to tab |
+| `Ctrl+1` to `9` | Jump to tab |
 | `Ctrl+N` | New window |
 | `Ctrl+A` | Select all |
-| `Alt+P` / `Alt+Shift+P` | Preview / details pane |
+| `Alt+P` / `Alt+Shift+P` | Preview, details pane |
 | `Ctrl+H` | Hidden items |
 | `Ctrl+,` | Settings |
 
 </td></tr>
 </table>
 
+`Ctrl+D` is Windows' `Win+D`: it hides every app so the desktop itself is showing, and puts them back when you press it again.
+
 ## Settings
 
 <img src="docs/settings.png" width="520" align="right" alt="Settings">
 
-The gear at the right end of the command bar — also in the `⋯` menu, the background right-click menu, and on `Ctrl+,`.
+The gear at the right end of the command bar, also in the `...` menu, the background right-click menu, and on `Ctrl+,`.
 
-- **Appearance** — System / Light / Dark, eight accent colours, and toggles for compact view, the three panes, item check boxes, extensions and hidden items.
-- **Shortcuts** — re-map any command. Click a shortcut, press the keys. If the combination is taken it is moved off the other command and you're told which. Per-command and global reset.
-- **Quick access** — everything pinned to the sidebar. Unpin any of it, including the six Windows defaults, restore what you unpinned, add folders.
-- **Folder icons** — the folders you've customised, with a reset for each.
+- **Appearance.** System, Light or Dark, eight accent colours, and toggles for compact view, the three panes, item check boxes, extensions and hidden items.
+- **Shortcuts.** Re-map any command. Click a shortcut, press the keys. If the combination is taken it is moved off the other command and you are told which. Per-command and global reset.
+- **Quick access.** Everything pinned to the sidebar. Unpin any of it, including the six Windows defaults, restore what you unpinned, add folders.
+- **Folder icons.** The folders you have customised, with a reset for each.
 
-**Pinning** — right-click any folder, in the list or the sidebar → *Pin to Quick access*.
+**Pinning.** Right-click any folder, in the list or the sidebar, then choose *Pin to Quick access*.
 
-**Custom folder icons** — right-click a folder → *Change icon…*, pick a Fluent glyph and a colour, or tint the standard folder. It applies in the file list, the sidebar and the Home tiles.
+**Custom folder icons.** Right-click a folder and choose *Change icon*, then pick a Fluent glyph and a colour, or tint the standard folder. It applies in the file list, the sidebar and the Home tiles.
 
 <br clear="right">
 
@@ -142,14 +143,14 @@ The gear at the right end of the command bar — also in the `⋯` menu, the bac
 
 Windows draws its command bar with **Segoe Fluent Icons**, a font that ships with Windows and isn't available on macOS. Copying the font wasn't an option, so the glyphs are reconstructed instead.
 
-Each icon is authored as a string in a small path language, on the same 16×16 grid Fluent uses:
+Each icon is authored as a string in a small path language, on the same 16x16 grid Fluent uses:
 
 ```swift
 .paste:  ("R 3.4 3.0 9.2 10.6 1.5 M6.2 3.0 V2.4 C6.2 1.9 6.5 1.6 7 1.6 H9 C9.5 1.6 9.8 1.9 9.8 2.4 V3.0", "")
 .filter: ("M2.4 3.4 H13.6 L9.2 8.6 V13.4 L6.8 11.8 V8.6 Z", "")
 ```
 
-`M/L/H/V/C/Q/Z` are the usual SVG commands; `O` adds a circle, `R` a rounded rect, `K` an arc. A ~60-line parser turns them into SwiftUI `Path`s rendered in a `Canvas`. A second, optional layer per icon carries the accent-coloured part — the blue rings on the scissors, the blue sheet inside the clipboard — which is what makes the command bar read as Windows rather than as generic line art.
+`M/L/H/V/C/Q/Z` are the usual SVG commands, `O` adds a circle, `R` a rounded rect, `K` an arc. A parser of about 60 lines turns them into SwiftUI `Path`s rendered in a `Canvas`. A second, optional layer per icon carries the accent-coloured part: the blue rings on the scissors, the blue sheet inside the clipboard. That layer is what makes the command bar read as Windows rather than as generic line art.
 
 The palette was taken from the WinUI 3 design tokens and cross-checked by sampling pixels out of a real Windows 11 screenshot.
 
@@ -158,7 +159,7 @@ The palette was taken from the WinUI 3 design tokens and cross-checked by sampli
 ```
 Sources/
   Theme.swift          WinUI 3 colour system, metrics, type ramp
-  Glyphs.swift         Fluent icon set — path mini-language and renderer
+  Glyphs.swift         Fluent icon set: path mini-language and renderer
   FileIcons.swift      Folder and file-type artwork, Quick Look thumbnails
   Model.swift          FileItem, Windows metadata formatting, known folders
   Explorer.swift       Tabs, history, selection, clipboard, file ops, undo, search
@@ -166,7 +167,7 @@ Sources/
   Controls.swift       Win11 buttons, flyout menus, AppKit-backed text fields
   Chrome.swift         Title bar, address bar, command bar
   Sidebar.swift        Navigation pane and drop handling
-  FileList.swift       Details / icons / list / tiles / content, right-click routing
+  FileList.swift       Details, icons, list, tiles, content, right-click routing
   HomeView.swift       Quick access and Recent
   Panes.swift          Status bar, details pane, preview pane
   Dialogs.swift        Properties, delete confirmation, errors
@@ -178,10 +179,10 @@ Sources/
 build.sh               Compiles and assembles the .app bundle
 ```
 
-A couple of decisions worth calling out:
+Two decisions worth calling out:
 
-- **Right-click routing.** Context-menu targets register an invisible marker view; a window-level monitor picks the smallest target under the pointer and falls back to the file-area background. Fighting AppKit's hit-testing instead would have swallowed the left clicks SwiftUI needs for selection and drag-and-drop.
-- **Shortcuts match on key code, not character.** `Shift+3` reports `#`, not `3` — so matching on characters silently breaks every `Ctrl+Shift+<digit>` binding.
+- **Right-click routing.** Context-menu targets register an invisible marker view, and a window-level monitor picks the smallest target under the pointer, falling back to the file-area background. Fighting AppKit's hit-testing instead would have swallowed the left clicks SwiftUI needs for selection and drag and drop.
+- **Shortcuts match on key code, not character.** `Shift+3` reports `#`, not `3`, so matching on characters silently breaks every `Ctrl+Shift+<digit>` binding.
 
 ## Tests
 
@@ -191,22 +192,22 @@ WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 
 Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename, delete, restore, navigation, tabs, view modes, type-ahead, sorting, search, shortcut re-mapping, pinning, folder icons and right-click routing. **49 checks.**
 
-Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_TEST=menu:context|dialog:settings|dialog:about` opens a menu or dialog for inspection.
+Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, and `WINEXP_TEST=menu:context|dialog:settings|dialog:about` opens a menu or dialog for inspection.
 
 ## Deliberate differences
 
-- **Extensions are shown by default.** Windows hides known ones; the toggle is in `View ▸ Show ▸ File name extensions`.
+- **Extensions are shown by default.** Windows hides known ones. The toggle is in `View > Show > File name extensions`.
 - **The Recycle Bin is the macOS Trash**, so deleted items land where the rest of the system expects them.
-- **Drives** — the boot volume is labelled `Local Disk (C:)`; other mounted volumes appear under This PC by their own names.
-- **"Account disconnected"** reports what's actually on the Mac: it reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
-- Rubber-band (marquee) selection isn't implemented; use `Shift` / `Ctrl` click.
+- **Drives.** The boot volume is labelled `Local Disk (C:)`, and other mounted volumes appear under This PC by their own names.
+- **"Account disconnected"** reports what is actually on the Mac. It reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
+- Rubber-band (marquee) selection isn't implemented. Use `Shift` or `Ctrl` click.
 
 ## Credits
 
-**Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)** — [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse)
+**Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)**, [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse)
 
-Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. The app icon is a Windows Explorer icon, included for personal use; the in-app iconography is original vector work drawn to match Fluent's design grid.
+Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. The app icon is a Windows Explorer icon, included for personal use. The in-app iconography is original vector work drawn to match Fluent's design grid.
 
 ## License
 
-[MIT](LICENSE) © Alex Degryse
+[MIT](LICENSE) (c) Alex Degryse

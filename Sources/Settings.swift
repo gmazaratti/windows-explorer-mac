@@ -76,6 +76,7 @@ enum Command: String, Codable, CaseIterable {
     case newTab, closeTab, nextTab, prevTab, newWindow
     case refresh, back, forward, up, focusAddress, focusSearch
     case goHome, goDesktop, goDownloads, goDocuments, goPictures, goMusic, goVideos, goThisPC
+    case showDesktop
     case properties, openTerminal, showInFinder
     case toggleHidden, toggleExtensions, toggleNavPane, toggleDetailsPane, togglePreviewPane
     case fullScreen, openSettings
@@ -106,7 +107,8 @@ enum Command: String, Codable, CaseIterable {
         case .prevTab: return "Previous tab"
         case .newWindow: return "New window"
         case .goHome: return "Go to Home"
-        case .goDesktop: return "Go to Desktop"
+        case .goDesktop: return "Go to Desktop folder"
+        case .showDesktop: return "Show desktop (hide all windows)"
         case .goDownloads: return "Go to Downloads"
         case .goDocuments: return "Go to Documents"
         case .goPictures: return "Go to Pictures"
@@ -155,6 +157,8 @@ enum Command: String, Codable, CaseIterable {
              .goHome, .goDesktop, .goDownloads, .goDocuments, .goPictures,
              .goMusic, .goVideos, .goThisPC:
             return "Navigation"
+        case .showDesktop:
+            return "Tabs & windows"
         default:
             return "View"
         }
@@ -186,7 +190,8 @@ enum Command: String, Codable, CaseIterable {
         case .prevTab:        return [KeyChord(code: 48, ctrl: true, shift: true)]
         case .newWindow:      return [KeyChord(char: "n", ctrl: true)]
         case .goHome:         return [KeyChord(char: "h", ctrl: true, shift: true)]
-        case .goDesktop:      return [KeyChord(char: "d", ctrl: true)]
+        case .goDesktop:      return [KeyChord(char: "d", ctrl: true, shift: true)]
+        case .showDesktop:    return [KeyChord(char: "d", ctrl: true)]
         case .goDownloads:    return [KeyChord(char: "j", ctrl: true, shift: true)]
         case .goDocuments:    return []
         case .goPictures:     return []

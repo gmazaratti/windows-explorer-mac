@@ -547,10 +547,12 @@ struct CommandBar: View {
             MenuEntry(title: "Select none", shortcut: Settings.shared.display(for: .selectNone)) { ex.selectNone() },
             MenuEntry(title: "Invert selection") { ex.invertSelection() },
             .sep(),
+            MenuEntry(title: "Show desktop", icon: .desktop,
+                      shortcut: Settings.shared.display(for: .showDesktop)) { DesktopReveal.toggle() },
             MenuEntry(title: "Go to", icon: .home, submenu: [
                 goEntry("Home", .goHome, .home, .home),
                 .sep(),
-                goEntry("Desktop", .goDesktop, .desktop, .folder(Places.desktop)),
+                goEntry("Desktop folder", .goDesktop, .desktop, .folder(Places.desktop)),
                 goEntry("Downloads", .goDownloads, .download, .folder(Places.downloads)),
                 goEntry("Documents", .goDocuments, .document, .folder(Places.documents)),
                 goEntry("Pictures", .goPictures, .picture, .folder(Places.pictures)),

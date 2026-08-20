@@ -502,8 +502,14 @@ final class Explorer: ObservableObject {
     }
 
     /// Type-ahead: jump to the next item starting with the typed prefix.
-    private var typeAhead = ""
+    private(set) var typeAhead = ""
     private var typeAheadStamp = Date.distantPast
+
+    /// Clears the type-ahead buffer (used when a view takes over the keyboard).
+    func resetTypeAhead() {
+        typeAhead = ""
+        typeAheadStamp = .distantPast
+    }
     func typeSelect(_ ch: String) {
         let now = Date()
         if now.timeIntervalSince(typeAheadStamp) > 1.0 { typeAhead = "" }

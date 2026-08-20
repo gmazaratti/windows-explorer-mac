@@ -182,7 +182,7 @@ struct MenuRow: View {
     @State private var showSub = false
     @State private var closeTask: DispatchWorkItem?
 
-    /// Submenus sit flush against the parent — a gap would drop the hover, and
+    /// Submenus sit flush against the parent. A gap would drop the hover, and
     /// an overlap would cover the parent's own items.
     private static let submenuWidth: CGFloat = 224
 
