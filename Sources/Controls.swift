@@ -404,6 +404,33 @@ struct WinCheckbox: View {
     }
 }
 
+/// A Fluent-styled segmented picker, so dialogs do not fall back to the
+/// native macOS popup and break the illusion.
+struct WinSegmented<T: Hashable>: View {
+    let options: [(label: String, value: T)]
+    @Binding var selection: T
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                let isOn = option.value == selection
+                Text(option.label)
+                    .font(Win.body(11))
+                    .foregroundStyle(isOn ? Win.textOnAccent : Win.text)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .frame(height: 24)
+                    .background(WinRR(radius: 3).fill(isOn ? Win.accent : Color.clear))
+                    .contentShape(Rectangle())
+                    .onTapGesture { selection = option.value }
+            }
+        }
+        .padding(2)
+        .background(WinRR(radius: 4).fill(Win.controlFill))
+        .overlay(WinRR(radius: 4).stroke(Win.stroke, lineWidth: 1))
+    }
+}
+
 /// Makes a region drag the window, the way the Explorer tab strip does.
 struct WindowDragArea: NSViewRepresentable {
     final class DragView: NSView {

@@ -13,8 +13,20 @@ final class RightClickRouter {
     static let shared = RightClickRouter()
 
     private let targets = NSHashTable<RightClickCatcher.View>.weakObjects()
-    /// Frame of the file area in root (window, top-left origin) coordinates.
-    var contentFrame: CGRect = .zero
+    /// Frame of each pane's file area, in root (window, top-left) coordinates.
+    private var contentFrames: [ObjectIdentifier: CGRect] = [:]
+
+    func setContentFrame(_ frame: CGRect, for owner: AnyObject) {
+        contentFrames[ObjectIdentifier(owner)] = frame
+    }
+
+    func contentFrame(for owner: AnyObject) -> CGRect {
+        contentFrames[ObjectIdentifier(owner)] ?? .zero
+    }
+
+    private var anyContentFrame: (CGPoint) -> Bool {
+        { point in self.contentFrames.values.contains { $0.contains(point) } }
+    }
 
     func register(_ view: RightClickCatcher.View) { targets.add(view) }
     func unregister(_ view: RightClickCatcher.View) { targets.remove(view) }
@@ -47,7 +59,7 @@ final class RightClickRouter {
             view.onClick?(point)
             return true
         }
-        if contentFrame.contains(point) {
+        if anyContentFrame(point) {
             NotificationCenter.default.post(name: .backgroundContextMenu, object: point)
             return true
         }
@@ -126,9 +138,9 @@ struct FileArea: View {
         }
         .background(GeometryReader { g in
             Color.clear
-                .onAppear { RightClickRouter.shared.contentFrame = g.frame(in: .named("root")) }
+                .onAppear { RightClickRouter.shared.setContentFrame(g.frame(in: .named("root")), for: ex) }
                 .onChange(of: g.frame(in: .named("root"))) { _, f in
-                    RightClickRouter.shared.contentFrame = f
+                    RightClickRouter.shared.setContentFrame(f, for: ex)
                 }
         })
         .overlay(
@@ -144,7 +156,9 @@ struct FileArea: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .backgroundContextMenu)) { note in
             guard let point = note.object as? CGPoint else { return }
-            guard AppState.shared.explorer(for: NSApp.keyWindow) === ex else { return }
+            // Only the pane the click landed in answers.
+            guard RightClickRouter.shared.contentFrame(for: ex).contains(point) else { return }
+            ex.onInteract?()
             ex.selectNone()
             menus.show(id: "bg", anchor: .zero, entries: ContextMenus.background(ex),
                        width: 250, iconRow: nil, point: point)
@@ -263,26 +277,39 @@ struct DetailsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            // The name column absorbs whatever space the others leave, so the
-            // list can never push the window wider than it is.
-            let others = dateWidth + typeWidth + sizeWidth + 26
-            let name = max(120, min(nameWidth, geo.size.width - others))
-            content(nameColumn: name)
+            content(columns: layout(for: geo.size.width))
         }
     }
 
-    private func content(nameColumn: CGFloat) -> some View {
+    /// Columns drop out as the pane narrows, rather than overflowing it.
+    /// Date survives longest after Name, then Size, then Type.
+    private func layout(for width: CGFloat) -> DetailColumns {
+        let minimumName: CGFloat = 120
+        var remaining = width - 26
+        var columns = DetailColumns(name: minimumName)
+        if remaining >= minimumName + dateWidth {
+            columns.date = dateWidth; remaining -= dateWidth
+        }
+        if remaining >= minimumName + sizeWidth {
+            columns.size = sizeWidth; remaining -= sizeWidth
+        }
+        if remaining >= minimumName + typeWidth {
+            columns.type = typeWidth; remaining -= typeWidth
+        }
+        columns.name = max(minimumName, min(nameWidth, remaining))
+        return columns
+    }
+
+    private func content(columns: DetailColumns) -> some View {
         VStack(spacing: 0) {
-            header(nameColumn: nameColumn)
+            header(columns: columns)
             Divider().overlay(Win.divider)
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
                     LazyVStack(spacing: 0) {
                         ForEach(ex.tab.items) { item in
                             DetailsRow(ex: ex, menus: menus, item: item,
-                                       height: rowHeight,
-                                       nameWidth: nameColumn, dateWidth: dateWidth,
-                                       typeWidth: typeWidth, sizeWidth: sizeWidth)
+                                       height: rowHeight, columns: columns)
                                 .id(item.id)
                         }
                         Color.clear
@@ -300,13 +327,19 @@ struct DetailsView: View {
         }
     }
 
-    private func header(nameColumn: CGFloat) -> some View {
+    private func header(columns: DetailColumns) -> some View {
         HStack(spacing: 0) {
             ColumnHeader(title: "Name", key: .name, width: $nameWidth,
-                         effective: nameColumn, ex: ex, leading: 34)
-            ColumnHeader(title: "Date modified", key: .modified, width: $dateWidth, ex: ex)
-            ColumnHeader(title: "Type", key: .type, width: $typeWidth, ex: ex)
-            ColumnHeader(title: "Size", key: .size, width: $sizeWidth, ex: ex, trailing: true)
+                         effective: columns.name, ex: ex, leading: 34)
+            if columns.date != nil {
+                ColumnHeader(title: "Date modified", key: .modified, width: $dateWidth, ex: ex)
+            }
+            if columns.type != nil {
+                ColumnHeader(title: "Type", key: .type, width: $typeWidth, ex: ex)
+            }
+            if columns.size != nil {
+                ColumnHeader(title: "Size", key: .size, width: $sizeWidth, ex: ex, trailing: true)
+            }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 4)
@@ -368,15 +401,20 @@ struct ColumnHeader: View {
     }
 }
 
+/// Which columns the Details view has room for.
+struct DetailColumns: Equatable {
+    var name: CGFloat
+    var date: CGFloat? = nil
+    var type: CGFloat? = nil
+    var size: CGFloat? = nil
+}
+
 struct DetailsRow: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
     let item: FileItem
     let height: CGFloat
-    let nameWidth: CGFloat
-    let dateWidth: CGFloat
-    let typeWidth: CGFloat
-    let sizeWidth: CGFloat
+    let columns: DetailColumns
     @State private var hovering = false
     @ObservedObject private var prefs = Prefs.shared
 
@@ -406,25 +444,31 @@ struct DetailsRow: View {
                 }
             }
             .padding(.leading, 10)
-            .frame(width: nameWidth, alignment: .leading)
+            .frame(width: columns.name, alignment: .leading)
 
-            Text(item.modifiedText)
-                .font(Win.body(12)).foregroundStyle(Win.textSecondary)
-                .lineLimit(1)
-                .padding(.leading, 6)
-                .frame(width: dateWidth, alignment: .leading)
+            if let width = columns.date {
+                Text(item.modifiedText)
+                    .font(Win.body(12)).foregroundStyle(Win.textSecondary)
+                    .lineLimit(1)
+                    .padding(.leading, 6)
+                    .frame(width: width, alignment: .leading)
+            }
 
-            Text(item.typeName)
-                .font(Win.body(12)).foregroundStyle(Win.textSecondary)
-                .lineLimit(1)
-                .padding(.leading, 6)
-                .frame(width: typeWidth, alignment: .leading)
+            if let width = columns.type {
+                Text(item.typeName)
+                    .font(Win.body(12)).foregroundStyle(Win.textSecondary)
+                    .lineLimit(1)
+                    .padding(.leading, 6)
+                    .frame(width: width, alignment: .leading)
+            }
 
-            Text(item.sizeText)
-                .font(Win.body(12)).foregroundStyle(Win.textSecondary)
-                .lineLimit(1)
-                .padding(.trailing, 10)
-                .frame(width: sizeWidth, alignment: .trailing)
+            if let width = columns.size {
+                Text(item.sizeText)
+                    .font(Win.body(12)).foregroundStyle(Win.textSecondary)
+                    .lineLimit(1)
+                    .padding(.trailing, 10)
+                    .frame(width: width, alignment: .trailing)
+            }
 
             Spacer(minLength: 0)
         }

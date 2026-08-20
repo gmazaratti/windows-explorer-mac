@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-49%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-85%20passing-6CCB5F?style=flat-square)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
@@ -33,6 +33,7 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 | **Real Windows shortcuts** | Bound to both `Ctrl` (Windows) and `Cmd` (Mac reflex), and every one of them re-mappable from Settings. |
 | **Eight view modes** | Icon grids with live Quick Look thumbnails, List that flows into columns, Details with sortable resizable columns, Tiles, Content. |
 | **It actually does the work** | Copy, cut and move, paste with `- Copy` conflict naming, rename, ZIP, shortcuts, Recycle Bin and permanent delete, all with undo and redo. Drag and drop works inside the app, onto sidebar folders and Quick access tiles, and to and from Finder, with the drop target lighting up as you hover it. |
+| **Power tools** | Dual pane, a background transfer queue with progress, archive browsing, batch rename, folder compare and sync, a drop shelf, workspaces, network shares and user-defined commands. |
 
 <div align="center">
 <img src="docs/details.png" width="440" alt="Details view"> <img src="docs/icons-view.png" width="440" alt="Large icons view with thumbnails">
@@ -53,6 +54,32 @@ The app is ad-hoc signed but **not notarized**, because notarization requires a 
   ```
 
 If you would rather not do either, build it from source. That takes one command and produces a binary macOS trusts, because it never came from the internet.
+
+## Power tools
+
+Everything below is optional. Turn a feature off and the app is still the Explorer clone it started as.
+
+<div align="center">
+<img src="docs/dual-pane.png" width="440" alt="Dual pane with the shelf open"> <img src="docs/archive.png" width="440" alt="Browsing inside a zip archive">
+</div>
+
+**Dual pane** (`Ctrl+U`). Two independent panes, each with its own tabs and history. `Tab` switches, `Ctrl+Shift+U` swaps them, and the overflow menu copies or moves the selection straight to the other pane. Columns drop out as a pane narrows rather than overflowing it.
+
+**Background transfers.** Copies and moves run on a queue with a progress bar in the status bar, a rate and time estimate, and a cancel button. Nothing blocks the window, and a move within one volume is still instant.
+
+**Archive browsing.** Double-click a zip or a tarball and walk into it like a folder. Open a file inside and it is extracted to a scratch folder first. Extract the whole thing, or just the selection, from the command bar. Zip and the tar family are supported, through the system's own `bsdtar`. RAR and 7z are not, because macOS ships no tool for them.
+
+**Batch rename** (`Ctrl+Shift+R`). Find and replace, prefix, suffix, numbering, case, extension, with a live preview and clash detection before anything is touched. It lands on the undo stack as one step.
+
+**Folder compare and sync.** Compare two trees, see what is only on one side and what differs, then copy one way. Defaults to the two panes when they are open.
+
+**Shelf** (`Ctrl+Shift+S`). A staging area that survives navigation: drop files in, go somewhere else, drop them out. Or use Copy here and Move here.
+
+**Workspaces.** Save the tabs open in each pane, the split and the view mode under a name, and restore them later.
+
+**Network shares** (`Ctrl+K`). Connect to SMB, AFP, NFS, FTP and WebDAV, with recent servers remembered. macOS owns the sign-in, so no password is ever typed into File Explorer. SFTP and S3 are not supported, because macOS cannot mount them without a third-party filesystem.
+
+**Commands.** Your own scripts in the context menu, with the selection in the environment (`$FE_SELECTION`, `$FE_NAMES`, `$FE_FIRST`, `$FE_DIR`, `$FE_COUNT`). Managed from Settings, stored in `~/Library/Application Support/File Explorer/commands.json`. Deliberately scripts rather than loadable native code: a plugin that can crash or compromise the app is not a feature.
 
 ## Build
 
@@ -132,6 +159,12 @@ Every shortcut works with **`Ctrl`** (as on Windows) *and* **`Cmd`** (as Mac mus
 | `Ctrl+A` | Select all |
 | `Alt+P` / `Alt+Shift+P` | Preview, details pane |
 | `Ctrl+H` | Hidden items |
+| `Ctrl+U` | Dual pane |
+| `Tab` | Switch pane |
+| `Ctrl+Shift+U` | Swap panes |
+| `Ctrl+Shift+R` | Batch rename |
+| `Ctrl+Shift+S` | Shelf |
+| `Ctrl+K` | Connect to server |
 | `Ctrl+,` | Settings |
 
 </td></tr>
@@ -181,6 +214,15 @@ Sources/
   Model.swift          FileItem, Windows metadata formatting, known folders
   Explorer.swift       Tabs, history, selection, clipboard, file ops, undo, search
   Settings.swift       Re-mappable shortcuts, theme, folder icons, pinning
+  WindowModel.swift    One or two panes per window
+  Transfers.swift      Background copy and move queue with progress
+  Archives.swift       Reading and extracting zip and tar archives
+  BatchRename.swift    The rename rule and its dialog
+  CompareSync.swift    Folder comparison and one-way sync
+  RemoteServers.swift  Network shares, mounted by macOS itself
+  Workspaces.swift     Saved pane and tab layouts
+  Shelf.swift          The staging area
+  CustomCommands.swift User-defined scripts in the context menu
   Controls.swift       Win11 buttons, flyout menus, AppKit-backed text fields
   Chrome.swift         Title bar, address bar, command bar
   Sidebar.swift        Navigation pane and drop handling
@@ -212,7 +254,7 @@ WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 
 Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename, delete, restore, navigation, tabs, view modes, type-ahead, sorting, search, shortcut re-mapping, pinning, folder icons and right-click routing. **49 checks.**
 
-Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, and `WINEXP_TEST=menu:context|dialog:settings|dialog:about|drop` opens a menu or dialog, or forces every drop target to light up, for inspection.
+Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|rename|archive|compare|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
 ## Deliberate differences
 
@@ -221,6 +263,7 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<
 - **Drives.** The boot volume is labelled `Local Disk (C:)`, and other mounted volumes appear under This PC by their own names.
 - **"Account disconnected"** reports what is actually on the Mac. It reads *iCloud Drive* or *OneDrive* when either is present, and *Account disconnected* when neither is.
 - Rubber-band (marquee) selection isn't implemented. Use `Shift` or `Ctrl` click.
+- Archive browsing is read-only. Dropping files into a zip is not supported.
 
 ## Credits
 

@@ -59,11 +59,12 @@ struct SettingsDialog: View {
 
     /// Lets the snapshot helper open a specific tab.
     static var initialTab = 0
+    static let aboutTabIndex = 5
     @State private var tab = SettingsDialog.initialTab
     @State private var capturing: Command?
     @State private var conflictNote: String?
 
-    private let tabs = ["Appearance", "Shortcuts", "Quick access", "Folder icons", "About"]
+    private let tabs = ["Appearance", "Shortcuts", "Quick access", "Folder icons", "Commands", "About"]
 
     var body: some View {
         WinDialog(title: "File Explorer Settings", width: 560, onClose: onClose) {
@@ -94,6 +95,7 @@ struct SettingsDialog: View {
                         case 1: shortcuts
                         case 2: quickAccess
                         case 3: folderIcons
+                        case 4: CustomCommandsSettings()
                         default: about
                         }
                     }

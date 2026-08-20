@@ -6,6 +6,7 @@ import AppKit
 struct StatusBar: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var prefs = Prefs.shared
+    @ObservedObject private var transfers = TransferQueue.shared
 
     var body: some View {
         HStack(spacing: 0) {
@@ -21,6 +22,27 @@ struct StatusBar: View {
 
             Spacer(minLength: 8)
 
+            if transfers.hasActive {
+                Button {
+                    transfers.panelOpen.toggle()
+                } label: {
+                    HStack(spacing: 8) {
+                        ProgressTrack(fraction: transfers.overallFraction)
+                            .frame(width: 90, height: 4)
+                        Text(transfers.summary)
+                            .font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .hoverFill(corner: 3)
+                .help("Show file transfers")
+                .padding(.trailing, 6)
+            }
+
             WinButton(tooltip: "Details view (Ctrl+Shift+6)",
                       active: prefs.viewMode == .details, padding: 6, height: 22, corner: 3) {
                 prefs.viewMode = .details
@@ -35,6 +57,121 @@ struct StatusBar: View {
         .frame(height: Win.M.statusBarHeight)
         .background(Win.statusBar)
         .overlay(alignment: .top) { Rectangle().fill(Win.divider).frame(height: 1) }
+    }
+}
+
+/// The thin Fluent progress bar used in the status bar and transfer rows.
+struct ProgressTrack: View {
+    let fraction: Double
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Win.controlFill)
+                Capsule().fill(Win.accent)
+                    .frame(width: max(2, geo.size.width * fraction))
+                    .animation(.linear(duration: 0.2), value: fraction)
+            }
+        }
+    }
+}
+
+// MARK: - Transfers
+
+struct TransfersPanel: View {
+    @ObservedObject var transfers = TransferQueue.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("File transfers")
+                    .font(Win.body(13, weight: .semibold)).foregroundStyle(Win.text)
+                Spacer()
+                if transfers.jobs.contains(where: { !$0.isActive }) {
+                    WinButton(padding: 8, height: 24) {
+                        transfers.clearFinished()
+                    } content: {
+                        Text("Clear finished").font(Win.body(11)).foregroundStyle(Win.textSecondary)
+                    }
+                }
+                WinButton(padding: 6, height: 24) {
+                    transfers.panelOpen = false
+                } content: {
+                    Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.3)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            Divider().overlay(Win.divider)
+
+            if transfers.jobs.isEmpty {
+                Text("Nothing is being copied or moved.")
+                    .font(Win.body(12)).foregroundStyle(Win.textTertiary)
+                    .padding(16)
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(transfers.jobs) { job in
+                            TransferRow(job: job)
+                        }
+                    }
+                }
+                .frame(maxHeight: 260)
+            }
+        }
+        .frame(width: 400)
+        .background(WinRR(radius: 8).fill(Win.flyout)
+            .shadow(color: .black.opacity(0.34), radius: 16, y: 8))
+        .overlay(WinRR(radius: 8).stroke(Win.stroke, lineWidth: 1))
+    }
+}
+
+struct TransferRow: View {
+    let job: TransferJob
+
+    private var statusText: String {
+        switch job.state {
+        case .waiting: return "Waiting"
+        case .running: return job.rateText.isEmpty ? job.sizeText : "\(job.sizeText)  \(job.rateText)"
+        case .finished: return "Finished, \(job.filesTotal) item\(job.filesTotal == 1 ? "" : "s")"
+        case .cancelled: return "Cancelled"
+        case .failed(let message): return message
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Glyph(icon: job.kind == .move ? .cut : .copy, size: 16,
+                  color: Win.textSecondary, weight: 1.15)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("\(job.kind.rawValue) to \(job.destination.map { Places.displayName(for: $0) } ?? "Recycle Bin")")
+                    .font(Win.body(12)).foregroundStyle(Win.text).lineLimit(1)
+                if job.isActive {
+                    ProgressTrack(fraction: job.fraction).frame(height: 4)
+                }
+                Text(job.currentName.isEmpty ? statusText : "\(job.currentName)  ·  \(statusText)")
+                    .font(Win.body(11))
+                    .foregroundStyle(job.state == .finished ? Win.textTertiary : Win.textSecondary)
+                    .lineLimit(1)
+            }
+
+            if job.isActive {
+                WinButton(tooltip: "Cancel", padding: 6, height: 24) {
+                    TransferQueue.shared.cancel(job.id)
+                } content: {
+                    Glyph(icon: .tabClose, size: 11, color: Win.textSecondary, weight: 1.3)
+                }
+            } else if case .failed = job.state {
+                Glyph(icon: .info, size: 14, color: Win.danger, weight: 1.2)
+            } else if job.state == .finished {
+                Glyph(icon: .checkmark, size: 14, color: Win.accent, weight: 1.4)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 }
 

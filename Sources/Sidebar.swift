@@ -220,22 +220,18 @@ enum DropHandler {
         }
         group.notify(queue: .main) {
             guard !urls.isEmpty else { return }
+            // Dropping a folder onto itself or into its own subtree would loop.
+            let valid = urls.filter { !dest.path.hasPrefix($0.path + "/") && $0.path != dest.path }
+            guard !valid.isEmpty else { NSSound.beep(); return }
             let flags = NSEvent.modifierFlags
             // Windows: Ctrl forces copy, Shift forces move; otherwise move within a
             // volume and copy across volumes.
             let forceCopy = flags.contains(.control) || flags.contains(.option)
             let forceMove = flags.contains(.shift) || flags.contains(.command)
-            let sameVolume = urls.allSatisfy { volumeID(of: $0) == volumeID(of: dest) }
-            do {
-                if forceCopy || (!forceMove && !sameVolume) {
-                    _ = try Ops.copyItems(urls, to: dest)
-                } else {
-                    _ = try Ops.moveItems(urls, to: dest)
-                }
-                ex.reload()
-            } catch {
-                ex.sheet = .error(error.localizedDescription)
-            }
+            let sameVolume = valid.allSatisfy { volumeID(of: $0) == volumeID(of: dest) }
+            let kind: TransferJob.Kind =
+                (forceCopy || (!forceMove && !sameVolume)) ? .copy : .move
+            ex.transfer(kind: kind, sources: valid, to: dest)
         }
         return true
     }

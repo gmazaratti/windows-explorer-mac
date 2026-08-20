@@ -400,6 +400,8 @@ final class Prefs: ObservableObject {
     @Published var itemCheckBoxes: Bool { didSet { d.set(itemCheckBoxes, forKey: "itemCheckBoxes") } }
     @Published var compactMode: Bool { didSet { d.set(compactMode, forKey: "compactMode") } }
     @Published var showAccountStatus: Bool { didSet { d.set(showAccountStatus, forKey: "showAccountStatus") } }
+    @Published var dualPane: Bool { didSet { d.set(dualPane, forKey: "dualPane") } }
+    @Published var showShelf: Bool { didSet { d.set(showShelf, forKey: "showShelf") } }
 
     private init() {
         d.register(defaults: [
@@ -407,6 +409,7 @@ final class Prefs: ObservableObject {
             "showNavPane": true, "showPreviewPane": false, "viewMode": ViewMode.details.rawValue,
             "sortKey": SortKey.name.rawValue, "sortAscending": true, "groupBy": "(None)",
             "itemCheckBoxes": false, "compactMode": false, "showAccountStatus": true,
+            "dualPane": false, "showShelf": false,
         ])
         showHidden = d.bool(forKey: "showHidden")
         showExtensions = d.bool(forKey: "showExtensions")
@@ -420,5 +423,7 @@ final class Prefs: ObservableObject {
         itemCheckBoxes = d.bool(forKey: "itemCheckBoxes")
         compactMode = d.bool(forKey: "compactMode")
         showAccountStatus = d.bool(forKey: "showAccountStatus")
+        dualPane = d.bool(forKey: "dualPane")
+        showShelf = d.bool(forKey: "showShelf")
     }
 }

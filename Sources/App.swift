@@ -5,22 +5,26 @@ import AppKit
 
 final class AppState {
     static let shared = AppState()
-    private var map: [ObjectIdentifier: Explorer] = [:]
+    private var map: [ObjectIdentifier: WindowModel] = [:]
     private var windows: [NSWindow] = []
 
-    func register(window: NSWindow, explorer: Explorer) {
-        map[ObjectIdentifier(window)] = explorer
+    func register(window: NSWindow, model: WindowModel) {
+        map[ObjectIdentifier(window)] = model
         if !windows.contains(window) { windows.append(window) }
     }
 
-    func explorer(for window: NSWindow?) -> Explorer? {
+    func model(for window: NSWindow?) -> WindowModel? {
         guard let window else { return nil }
         return map[ObjectIdentifier(window)]
     }
 
-    var active: Explorer? {
-        explorer(for: NSApp.keyWindow) ?? explorer(for: NSApp.mainWindow) ?? map.values.first
+    func explorer(for window: NSWindow?) -> Explorer? { model(for: window)?.active }
+
+    var activeModel: WindowModel? {
+        model(for: NSApp.keyWindow) ?? model(for: NSApp.mainWindow) ?? map.values.first
     }
+
+    var active: Explorer? { activeModel?.active }
 
     @discardableResult
     func openNewWindow(at location: Location = .home) -> NSWindow {
@@ -341,6 +345,19 @@ enum Keys {
         case .goHome: ex.go(to: .home)
         case .goDesktop: ex.go(to: Places.desktop)
         case .showDesktop: DesktopReveal.toggle()
+        case .toggleDualPane: AppState.shared.activeModel?.toggleDual()
+        case .switchPane: AppState.shared.activeModel?.switchPane()
+        case .swapPanes: AppState.shared.activeModel?.swapPanes()
+        case .copyToOtherPane: AppState.shared.activeModel?.sendSelection(kind: .copy)
+        case .moveToOtherPane: AppState.shared.activeModel?.sendSelection(kind: .move)
+        case .batchRename:
+            let selection = ex.selectedItems
+            if selection.isEmpty { NSSound.beep() } else { ex.sheet = .batchRename(selection) }
+        case .compareFolders: ex.sheet = .compare
+        case .connectServer: ex.sheet = .connectServer
+        case .workspaces: ex.sheet = .workspaces
+        case .toggleShelf: prefs.showShelf.toggle()
+        case .extractArchive: ex.extractSelection()
         case .goDownloads: ex.go(to: Places.downloads)
         case .goDocuments: ex.go(to: Places.documents)
         case .goPictures: ex.go(to: Places.pictures)

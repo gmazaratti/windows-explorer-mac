@@ -10,10 +10,13 @@ enum Location: Hashable {
     case network
     case folder(URL)
     case recycleBin
+    /// Browsing inside an archive: the archive file, and the path within it.
+    case archive(URL, String)
 
     var url: URL? {
         switch self {
         case .folder(let u): return u
+        case .archive: return nil
         case .gallery: return Places.pictures
         case .network: return URL(fileURLWithPath: "/Volumes")
         case .recycleBin: return Places.trash
@@ -29,6 +32,9 @@ enum Location: Hashable {
         case .network: return "Network"
         case .recycleBin: return "Recycle Bin"
         case .folder(let u): return Places.displayName(for: u)
+        case .archive(let archive, let inner):
+            return inner.isEmpty ? archive.lastPathComponent
+                                 : String(inner.split(separator: "/").last ?? "")
         }
     }
 
@@ -40,6 +46,7 @@ enum Location: Hashable {
         case .network: return .network
         case .recycleBin: return .recycleBin
         case .folder(let u): return Places.icon(for: u)
+        case .archive: return .compress
         }
     }
 }
@@ -269,6 +276,10 @@ final class Explorer: ObservableObject {
         case error(String)
         case settings
         case folderIcon(FileItem)
+        case batchRename([FileItem])
+        case compare
+        case connectServer
+        case workspaces
         var id: String {
             switch self {
             case .properties(let i): return "props-\(i.count)-\(i.first?.id ?? "")"
@@ -276,11 +287,17 @@ final class Explorer: ObservableObject {
             case .error(let m): return "err-\(m)"
             case .settings: return "settings"
             case .folderIcon(let i): return "icon-\(i.id)"
+            case .batchRename(let i): return "rename-\(i.count)"
+            case .compare: return "compare"
+            case .connectServer: return "connect"
+            case .workspaces: return "workspaces"
             }
         }
     }
 
     let prefs = Prefs.shared
+    /// Called whenever the user drives this pane, so the window can make it active.
+    var onInteract: (() -> Void)?
     private var searchWork: DispatchWorkItem?
     private var watcher: DirectoryWatcher?
 
@@ -313,6 +330,8 @@ final class Explorer: ObservableObject {
             items = Loader.contents(of: Places.trash, showHidden: prefs.showHidden)
         case .folder(let url):
             items = Loader.contents(of: url, showHidden: prefs.showHidden)
+        case .archive(let archive, let inner):
+            items = Archives.children(of: archive, at: inner)
         }
         if let f = filterKind { items = items.filter { matchesFilter($0, f) } }
         tab.items = Loader.sort(items, by: prefs.sortKey, ascending: prefs.sortAscending)
@@ -364,6 +383,7 @@ final class Explorer: ObservableObject {
     // MARK: Navigation
 
     func go(to loc: Location, newTab: Bool = false) {
+        onInteract?()
         if newTab { openTab(loc); return }
         var t = tab
         if t.index < t.history.count - 1 {
@@ -395,8 +415,21 @@ final class Explorer: ObservableObject {
         reload()
     }
 
+    var isInsideArchive: Bool {
+        if case .archive = tab.location { return true }
+        return false
+    }
+
     func up() {
         switch tab.location {
+        case .archive(let archive, let inner):
+            if inner.isEmpty {
+                go(to: archive.deletingLastPathComponent())
+            } else {
+                var parts = inner.split(separator: "/").map(String.init)
+                parts.removeLast()
+                go(to: .archive(archive, parts.joined(separator: "/")))
+            }
         case .folder(let url):
             if url.path == "/" { go(to: .thisPC) }
             else { go(to: url.deletingLastPathComponent()) }
@@ -412,10 +445,59 @@ final class Explorer: ObservableObject {
     }
 
     func open(_ item: FileItem) {
+        onInteract?()
+        if case .archive(let archive, let inner) = tab.location {
+            let entry = inner.isEmpty ? item.name : inner + "/" + item.name
+            if item.isDirectory {
+                go(to: .archive(archive, entry))
+            } else if let staged = Archives.stage(archive, entry: entry) {
+                NSWorkspace.shared.open(staged)
+            } else {
+                sheet = .error("Could not extract “\(item.name)” from the archive.")
+            }
+            return
+        }
         if item.isDirectory && !item.isPackage {
             go(to: item.url)
+        } else if Archives.isArchive(item.url) {
+            go(to: .archive(item.url, ""))
         } else {
             NSWorkspace.shared.open(item.url)
+        }
+    }
+
+    // MARK: Archives
+
+    /// Extracts the whole archive, or just the selection when browsing inside one.
+    func extractSelection() {
+        if case .archive(let archive, let inner) = tab.location {
+            let selected = selectedItems
+            let destination = Archives.extractionFolder(for: archive)
+            let entries = selected.map { inner.isEmpty ? $0.name : inner + "/" + $0.name }
+            runExtraction(archive, entries: entries, to: destination)
+            return
+        }
+        guard let item = selectedItems.first(where: { Archives.isArchive($0.url) }) else {
+            NSSound.beep()
+            return
+        }
+        runExtraction(item.url, entries: [], to: Archives.extractionFolder(for: item.url))
+    }
+
+    private func runExtraction(_ archive: URL, entries: [String], to destination: URL) {
+        flash("Extracting \(archive.lastPathComponent)")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let error = Archives.extract(archive, entries: entries, to: destination)
+            DispatchQueue.main.async {
+                if let error {
+                    self.sheet = .error("Could not extract the archive.\n\(error)")
+                } else {
+                    self.flash("Extracted to \(destination.lastPathComponent)")
+                    if self.currentDirectory == destination.deletingLastPathComponent() {
+                        self.reload()
+                    }
+                }
+            }
         }
     }
 
@@ -456,6 +538,7 @@ final class Explorer: ObservableObject {
     var selectedItems: [FileItem] { tab.items.filter { tab.selection.contains($0.id) } }
 
     func select(_ item: FileItem, extend: Bool, toggle: Bool) {
+        onInteract?()
         var t = tab
         if toggle {
             if t.selection.contains(item.id) { t.selection.remove(item.id) }
@@ -526,6 +609,7 @@ final class Explorer: ObservableObject {
     var currentDirectory: URL? {
         switch tab.location {
         case .folder(let u): return u
+        case .archive: return nil
         case .gallery: return Places.pictures
         case .recycleBin: return Places.trash
         case .network: return URL(fileURLWithPath: "/Volumes")
@@ -552,20 +636,29 @@ final class Explorer: ObservableObject {
         let urls = Clipboard.urls
         guard !urls.isEmpty else { NSSound.beep(); return }
         let cutting = Clipboard.isCut
-        do {
-            if cutting {
-                let moved = try Ops.moveItems(urls, to: dir)
-                if !moved.isEmpty { push(.move(items: moved)) }
-                Clipboard.clearCut()
-            } else {
-                let created = try Ops.copyItems(urls, to: dir)
-                if !created.isEmpty { push(.copy(created: created)) }
+        if cutting { Clipboard.clearCut() }
+        transfer(kind: cutting ? .move : .copy, sources: urls, to: dir)
+    }
+
+    /// Hands a copy or move to the background queue and folds the result into
+    /// the undo stack once it lands.
+    func transfer(kind: TransferJob.Kind, sources: [URL], to destination: URL) {
+        TransferQueue.shared.enqueue(kind: kind, sources: sources, to: destination) { [weak self] job in
+            guard let self else { return }
+            switch job.state {
+            case .failed(let message):
+                self.sheet = .error(message)
+            case .finished:
+                if !job.moved.isEmpty { self.push(.move(items: job.moved)) }
+                if !job.created.isEmpty { self.push(.copy(created: job.created)) }
+            default:
+                break
             }
-            reload()
-            let names = Set(urls.map { $0.lastPathComponent })
-            tab.selection = Set(tab.items.filter { names.contains($0.name) || $0.name.contains(" - Copy") }.map(\.id))
-        } catch {
-            sheet = .error(error.localizedDescription)
+            self.reload()
+            let landed = Set((job.created + job.moved.map(\.to)).map { $0.lastPathComponent })
+            if !landed.isEmpty {
+                self.tab.selection = Set(self.tab.items.filter { landed.contains($0.name) }.map(\.id))
+            }
         }
     }
 
@@ -651,6 +744,13 @@ final class Explorer: ObservableObject {
             tab.selection = [url.path]
             tab.editing = url.path
         } catch { sheet = .error(error.localizedDescription) }
+    }
+
+    /// Batch renames land on the undo stack as a single step.
+    func recordBatchRename(_ renames: [(from: URL, to: URL)]) {
+        guard !renames.isEmpty else { return }
+        push(.move(items: renames))
+        flash("Renamed \(renames.count) item\(renames.count == 1 ? "" : "s")")
     }
 
     func zipSelection() {
@@ -798,20 +898,35 @@ final class Explorer: ObservableObject {
         case .gallery: return [Crumb(title: "Gallery", location: .gallery, icon: .gallery)]
         case .network: return [Crumb(title: "Network", location: .network, icon: .network)]
         case .recycleBin: return [Crumb(title: "Recycle Bin", location: .recycleBin, icon: .recycleBin)]
-        case .folder(let url):
-            var crumbs: [Crumb] = []
-            var u = url
-            while true {
-                crumbs.insert(Crumb(title: Places.displayName(for: u), location: .folder(u),
-                                    icon: crumbs.isEmpty ? Places.icon(for: u) : nil), at: 0)
-                if u.path == "/" || u.path == Places.home.path { break }
-                let parent = u.deletingLastPathComponent()
-                if parent.path == u.path { break }
-                u = parent
+        case .archive(let archive, let inner):
+            var crumbs = folderCrumbs(archive.deletingLastPathComponent())
+            crumbs.append(Crumb(title: archive.lastPathComponent,
+                                location: .archive(archive, ""), icon: .compress))
+            var accumulated = ""
+            for part in inner.split(separator: "/") {
+                accumulated = accumulated.isEmpty ? String(part) : accumulated + "/" + part
+                crumbs.append(Crumb(title: String(part),
+                                    location: .archive(archive, accumulated), icon: nil))
             }
-            crumbs.insert(Crumb(title: "This PC", location: .thisPC, icon: .thisPC), at: 0)
             return crumbs
+        case .folder(let url):
+            return folderCrumbs(url)
         }
+    }
+
+    private func folderCrumbs(_ url: URL) -> [Crumb] {
+        var crumbs: [Crumb] = []
+        var u = url
+        while true {
+            crumbs.insert(Crumb(title: Places.displayName(for: u), location: .folder(u),
+                                icon: crumbs.isEmpty ? Places.icon(for: u) : nil), at: 0)
+            if u.path == "/" || u.path == Places.home.path { break }
+            let parent = u.deletingLastPathComponent()
+            if parent.path == u.path { break }
+            u = parent
+        }
+        crumbs.insert(Crumb(title: "This PC", location: .thisPC, icon: .thisPC), at: 0)
+        return crumbs
     }
 
     var addressPath: String {

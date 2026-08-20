@@ -77,6 +77,8 @@ enum Command: String, Codable, CaseIterable {
     case refresh, back, forward, up, focusAddress, focusSearch
     case goHome, goDesktop, goDownloads, goDocuments, goPictures, goMusic, goVideos, goThisPC
     case showDesktop
+    case toggleDualPane, switchPane, swapPanes, copyToOtherPane, moveToOtherPane
+    case batchRename, compareFolders, connectServer, workspaces, toggleShelf, extractArchive
     case properties, openTerminal, showInFinder
     case toggleHidden, toggleExtensions, toggleNavPane, toggleDetailsPane, togglePreviewPane
     case fullScreen, openSettings
@@ -109,6 +111,17 @@ enum Command: String, Codable, CaseIterable {
         case .goHome: return "Go to Home"
         case .goDesktop: return "Go to Desktop folder"
         case .showDesktop: return "Show desktop (hide all windows)"
+        case .toggleDualPane: return "Dual pane"
+        case .switchPane: return "Switch pane"
+        case .swapPanes: return "Swap panes"
+        case .copyToOtherPane: return "Copy to the other pane"
+        case .moveToOtherPane: return "Move to the other pane"
+        case .batchRename: return "Rename many items"
+        case .compareFolders: return "Compare and sync folders"
+        case .connectServer: return "Connect to server"
+        case .workspaces: return "Workspaces"
+        case .toggleShelf: return "Shelf"
+        case .extractArchive: return "Extract archive"
         case .goDownloads: return "Go to Downloads"
         case .goDocuments: return "Go to Documents"
         case .goPictures: return "Go to Pictures"
@@ -157,8 +170,12 @@ enum Command: String, Codable, CaseIterable {
              .goHome, .goDesktop, .goDownloads, .goDocuments, .goPictures,
              .goMusic, .goVideos, .goThisPC:
             return "Navigation"
-        case .showDesktop:
+        case .showDesktop, .toggleDualPane, .switchPane, .swapPanes, .workspaces:
             return "Tabs & windows"
+        case .copyToOtherPane, .moveToOtherPane, .batchRename, .extractArchive:
+            return "Files"
+        case .compareFolders, .connectServer, .toggleShelf:
+            return "Navigation"
         default:
             return "View"
         }
@@ -192,6 +209,17 @@ enum Command: String, Codable, CaseIterable {
         case .goHome:         return [KeyChord(char: "h", ctrl: true, shift: true)]
         case .goDesktop:      return [KeyChord(char: "d", ctrl: true, shift: true)]
         case .showDesktop:    return [KeyChord(char: "d", ctrl: true)]
+        case .toggleDualPane: return [KeyChord(char: "u", ctrl: true)]
+        case .switchPane:     return [KeyChord(code: 48)]
+        case .swapPanes:      return [KeyChord(char: "u", ctrl: true, shift: true)]
+        case .copyToOtherPane: return []
+        case .moveToOtherPane: return []
+        case .batchRename:    return [KeyChord(char: "r", ctrl: true, shift: true)]
+        case .compareFolders: return []
+        case .connectServer:  return [KeyChord(char: "k", ctrl: true)]
+        case .workspaces:     return []
+        case .toggleShelf:    return [KeyChord(char: "s", ctrl: true, shift: true)]
+        case .extractArchive: return []
         case .goDownloads:    return [KeyChord(char: "j", ctrl: true, shift: true)]
         case .goDocuments:    return []
         case .goPictures:     return []

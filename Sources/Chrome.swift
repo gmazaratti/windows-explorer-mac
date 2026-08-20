@@ -326,6 +326,7 @@ extension Notification.Name {
 
 struct CommandBar: View {
     @ObservedObject var ex: Explorer
+    @ObservedObject var model: WindowModel
     @ObservedObject var menus: MenuController
     @ObservedObject var prefs = Prefs.shared
     @State private var frames: [String: CGRect] = [:]
@@ -380,6 +381,17 @@ struct CommandBar: View {
                 ex.deleteSelection(permanent: false)
             } content: { Glyph(icon: .delete, size: 16, color: Win.text) }
 
+            if ex.isInsideArchive || ex.selectedItems.contains(where: { Archives.isArchive($0.url) }) {
+                WinButton(tooltip: "Extract", padding: 9, height: 32) {
+                    ex.extractSelection()
+                } content: {
+                    HStack(spacing: 8) {
+                        Glyph(icon: .compress, size: 16, color: Win.text, weight: 1.15)
+                        if roomy { Text("Extract").font(Win.body(12)).foregroundStyle(Win.text) }
+                    }
+                }
+            }
+
             Sep()
 
             WinButton(id: "cb.sort", tooltip: "Sort", padding: 10, height: 32) {
@@ -429,6 +441,14 @@ struct CommandBar: View {
                     Glyph(icon: .detailsPane, size: 16, color: Win.text, weight: 1.15)
                     if roomy { Text("Details").font(Win.body(12)).foregroundStyle(Win.text) }
                 }
+            }
+
+            WinButton(tooltip: "Dual pane (\(Settings.shared.display(for: .toggleDualPane) ?? ""))",
+                      active: model.dual, padding: 8, height: 32) {
+                model.toggleDual()
+            } content: {
+                Glyph(icon: .detailsPane, size: 16, color: Win.text, weight: 1.15)
+                    .rotationEffect(.degrees(180))
             }
 
             WinButton(id: "cb.settings", tooltip: "Settings", padding: 8, height: 32) {
@@ -549,6 +569,44 @@ struct CommandBar: View {
             .sep(),
             MenuEntry(title: "Show desktop", icon: .desktop,
                       shortcut: Settings.shared.display(for: .showDesktop)) { DesktopReveal.toggle() },
+            MenuEntry(title: "Panes", icon: .detailsPane, submenu: [
+                MenuEntry(title: "Dual pane", shortcut: Settings.shared.display(for: .toggleDualPane),
+                          checked: model.dual) { model.toggleDual() },
+                MenuEntry(title: "Switch pane", shortcut: Settings.shared.display(for: .switchPane),
+                          enabled: model.dual) { model.switchPane() },
+                MenuEntry(title: "Swap panes", shortcut: Settings.shared.display(for: .swapPanes),
+                          enabled: model.dual) { model.swapPanes() },
+                .sep(),
+                MenuEntry(title: "Copy to the other pane", icon: .copy,
+                          shortcut: Settings.shared.display(for: .copyToOtherPane),
+                          enabled: model.dual) { model.sendSelection(kind: .copy) },
+                MenuEntry(title: "Move to the other pane", icon: .cut,
+                          shortcut: Settings.shared.display(for: .moveToOtherPane),
+                          enabled: model.dual) { model.sendSelection(kind: .move) },
+            ]),
+            MenuEntry(title: "Tools", icon: .terminal, submenu: [
+                MenuEntry(title: "Rename many items", icon: .rename,
+                          shortcut: Settings.shared.display(for: .batchRename),
+                          enabled: !ex.tab.selection.isEmpty) {
+                    ex.sheet = .batchRename(ex.selectedItems)
+                },
+                MenuEntry(title: "Compare and sync folders", icon: .view) { ex.sheet = .compare },
+                MenuEntry(title: "Extract archive", icon: .compress,
+                          enabled: ex.isInsideArchive
+                              || ex.selectedItems.contains { Archives.isArchive($0.url) }) {
+                    ex.extractSelection()
+                },
+                .sep(),
+                MenuEntry(title: "Shelf", icon: .compress,
+                          shortcut: Settings.shared.display(for: .toggleShelf),
+                          checked: prefs.showShelf) { prefs.showShelf.toggle() },
+                MenuEntry(title: "Workspaces", icon: .gridView) { ex.sheet = .workspaces },
+                MenuEntry(title: "Connect to server", icon: .network,
+                          shortcut: Settings.shared.display(for: .connectServer)) {
+                    ex.sheet = .connectServer
+                },
+            ]),
+            .sep(),
             MenuEntry(title: "Go to", icon: .home, submenu: [
                 goEntry("Home", .goHome, .home, .home),
                 .sep(),

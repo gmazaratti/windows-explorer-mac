@@ -45,7 +45,23 @@ enum ContextMenus {
                 ex.sheet = .folderIcon(sel[0])
             })
         }
+        if sel.count > 1 {
+            entries.append(.sep())
+            entries.append(MenuEntry(title: "Rename \(sel.count) items…", icon: .rename,
+                                     shortcut: Settings.shared.display(for: .batchRename)) {
+                ex.sheet = .batchRename(sel)
+            })
+        }
+        if sel.contains(where: { Archives.isArchive($0.url) }) || ex.isInsideArchive {
+            entries.append(MenuEntry(title: "Extract here", icon: .compress) {
+                ex.extractSelection()
+            })
+        }
         entries.append(.sep())
+        entries.append(MenuEntry(title: "Add to shelf", icon: .plus) {
+            Shelf.shared.add(sel.map(\.url))
+            Prefs.shared.showShelf = true
+        })
         entries.append(MenuEntry(title: "Copy as path", icon: .copy,
                                  shortcut: Settings.shared.display(for: .copyPath)) { ex.copyPath() })
         entries.append(MenuEntry(title: "Compress to ZIP file", icon: .compress) { ex.zipSelection() })

@@ -2,19 +2,18 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @StateObject var ex: Explorer
+    @StateObject var model: WindowModel
     @StateObject private var menus = MenuController()
     @ObservedObject private var prefs = Prefs.shared
     @ObservedObject private var settings = Settings.shared
+    @ObservedObject private var transfers = TransferQueue.shared
     @State private var sidebarWidth: CGFloat = Win.M.sidebarWidth
 
+    /// The pane the chrome is currently driving.
+    private var ex: Explorer { model.active }
+
     init(start: Location = .home) {
-        let e = Explorer()
-        if case .home = start {} else {
-            e.tabs[0].history = [start]
-            e.reload()
-        }
-        _ex = StateObject(wrappedValue: e)
+        _model = StateObject(wrappedValue: WindowModel(start: start))
     }
 
     var body: some View {
@@ -23,7 +22,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     TitleBar(ex: ex, menus: menus)
                     NavBar(ex: ex, menus: menus)
-                    CommandBar(ex: ex, menus: menus)
+                    CommandBar(ex: ex, model: model, menus: menus)
 
                     HStack(spacing: 0) {
                         if prefs.showNavPane {
@@ -31,8 +30,8 @@ struct ContentView: View {
                                 .frame(width: sidebarWidth)
                             SplitHandle(width: $sidebarWidth, min: 120, max: 380)
                         }
-                        FileArea(ex: ex, menus: menus)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        panes()
+                        if prefs.showShelf { ShelfPane(ex: ex) }
                         if prefs.showPreviewPane { PreviewPane(ex: ex) }
                         if prefs.showDetailsPane { DetailsPane(ex: ex) }
                     }
@@ -57,14 +56,18 @@ struct ContentView: View {
                         .transition(.opacity)
                 }
 
-                // Modal dialogs
-                if let sheet = ex.sheet {
-                    Color.black.opacity(0.35)
+                // Transfer queue
+                if TransferQueue.shared.panelOpen {
+                    Color.black.opacity(0.001)
                         .ignoresSafeArea()
-                        .onTapGesture { }
-                    dialog(sheet, maxHeight: max(200, geo.size.height - 170))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onTapGesture { TransferQueue.shared.panelOpen = false }
+                    TransfersPanel()
+                        .offset(x: max(8, geo.size.width - 410),
+                                y: max(8, geo.size.height - 360))
                 }
+
+                // Modal dialogs
+                DialogHost(ex: ex, model: model, maxHeight: max(200, geo.size.height - 170))
             }
             .coordinateSpace(name: "root")
             .background(Win.chrome)
@@ -84,7 +87,7 @@ struct ContentView: View {
             }
         }
         .background(WindowAccessor { window in
-            AppState.shared.register(window: window, explorer: ex)
+            AppState.shared.register(window: window, model: model)
         })
     }
 
@@ -104,11 +107,28 @@ struct ContentView: View {
                 if let first = ex.tab.items.first { ex.sheet = .properties([first]) }
             case "dialog:settings":
                 ex.sheet = .settings
+            case "dual":
+                if !model.dual { model.toggleDual() }
+                Prefs.shared.showShelf = true
+                if let first = ex.tab.items.first { Shelf.shared.add([first.url]) }
+                model.right?.go(to: Places.home)
+            case "rename":
+                let items = Array(ex.tab.items.prefix(6))
+                if !items.isEmpty { ex.sheet = .batchRename(items) }
+            case "archive":
+                if let zip = ex.tab.items.first(where: { Archives.isArchive($0.url) }) {
+                    ex.go(to: .archive(zip.url, ""))
+                }
+            case "compare":
+                ex.sheet = .compare
+            case "commands":
+                SettingsDialog.initialTab = 4
+                ex.sheet = .settings
             case "drop":
                 DropHighlight.forceOn = true
                 ex.reload()
             case "dialog:about":
-                SettingsDialog.initialTab = 4
+                SettingsDialog.initialTab = SettingsDialog.aboutTabIndex
                 ex.sheet = .settings
             case "settings:shortcuts":
                 ex.sheet = .settings
@@ -119,24 +139,25 @@ struct ContentView: View {
         }
     }
 
+    /// One pane, or two with a draggable divider between them. The split is
+    /// measured against the space left for panes, not the whole window, so the
+    /// shelf and the side panes do not squeeze one pane into nothing.
     @ViewBuilder
-    private func dialog(_ sheet: Explorer.SheetKind, maxHeight: CGFloat) -> some View {
-        switch sheet {
-        case .properties(let items):
-            PropertiesDialog(items: items, maxHeight: maxHeight) { ex.sheet = nil }
-        case .confirmDelete(let items, let permanent):
-            ConfirmDeleteDialog(items: items, permanent: permanent,
-                                onConfirm: {
-                                    ex.sheet = nil
-                                    ex.performDelete(items, permanent: permanent)
-                                },
-                                onCancel: { ex.sheet = nil })
-        case .error(let message):
-            ErrorDialog(message: message) { ex.sheet = nil }
-        case .settings:
-            SettingsDialog(ex: ex, maxHeight: maxHeight) { ex.sheet = nil }
-        case .folderIcon(let item):
-            FolderIconDialog(item: item) { ex.sheet = nil }
+    private func panes() -> some View {
+        if let right = model.right {
+            GeometryReader { paneArea in
+                HStack(spacing: 0) {
+                    PaneView(model: model, ex: model.left, side: .left, menus: menus)
+                        .frame(width: max(180, paneArea.size.width * model.splitRatio))
+                    PaneDivider(model: model, available: max(1, paneArea.size.width))
+                    PaneView(model: model, ex: right, side: .right, menus: menus)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            FileArea(ex: model.left, menus: menus)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -179,6 +200,116 @@ struct ContentView: View {
             menus.close()
             ex.sheet = .settings
         }
+    }
+}
+
+/// Hosts the modal dialogs, observing whichever pane is active.
+struct DialogHost: View {
+    @ObservedObject var ex: Explorer
+    @ObservedObject var model: WindowModel
+    let maxHeight: CGFloat
+
+    var body: some View {
+        if let sheet = ex.sheet {
+            ZStack {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture { }
+                dialog(sheet)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dialog(_ sheet: Explorer.SheetKind) -> some View {
+        switch sheet {
+        case .properties(let items):
+            PropertiesDialog(items: items, maxHeight: maxHeight) { ex.sheet = nil }
+        case .confirmDelete(let items, let permanent):
+            ConfirmDeleteDialog(items: items, permanent: permanent,
+                                onConfirm: {
+                                    ex.sheet = nil
+                                    ex.performDelete(items, permanent: permanent)
+                                },
+                                onCancel: { ex.sheet = nil })
+        case .error(let message):
+            ErrorDialog(message: message) { ex.sheet = nil }
+        case .settings:
+            SettingsDialog(ex: ex, maxHeight: maxHeight) { ex.sheet = nil }
+        case .folderIcon(let item):
+            FolderIconDialog(item: item) { ex.sheet = nil }
+        case .batchRename(let items):
+            BatchRenameDialog(ex: ex, items: items, maxHeight: maxHeight) { ex.sheet = nil }
+        case .compare:
+            CompareDialog(model: model, maxHeight: maxHeight) { ex.sheet = nil }
+        case .connectServer:
+            ConnectServerDialog { ex.sheet = nil }
+        case .workspaces:
+            WorkspacesDialog(model: model) { ex.sheet = nil }
+        }
+    }
+}
+
+/// One pane of the content area.
+struct PaneView: View {
+    @ObservedObject var model: WindowModel
+    @ObservedObject var ex: Explorer
+    let side: PaneSide
+    @ObservedObject var menus: MenuController
+
+    private var isActive: Bool { model.activeSide == side }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Glyph(icon: ex.tab.location.icon, size: 13,
+                      color: isActive ? Win.accent : Win.textTertiary, weight: 1.2)
+                Text(ex.tab.location.title)
+                    .font(Win.body(11, weight: isActive ? .semibold : .regular))
+                    .foregroundStyle(isActive ? Win.text : Win.textSecondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text("\(ex.tab.items.count) items")
+                    .font(Win.body(11)).foregroundStyle(Win.textTertiary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background(isActive ? Win.selected : Color.clear)
+
+            FileArea(ex: ex, menus: menus)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .overlay(alignment: .top) {
+            Rectangle().fill(isActive ? Win.accent : Color.clear).frame(height: 2)
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded { model.activate(side) })
+    }
+}
+
+struct PaneDivider: View {
+    @ObservedObject var model: WindowModel
+    let available: CGFloat
+    @State private var hovering = false
+
+    var body: some View {
+        Rectangle()
+            .fill(Win.divider)
+            .frame(width: 1)
+            .overlay(
+                Rectangle().fill(Color.clear).frame(width: 10)
+                    .contentShape(Rectangle())
+                    .onHover { h in
+                        hovering = h
+                        if h { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+                    }
+                    .gesture(DragGesture()
+                        .onChanged { g in
+                            let delta = g.translation.width / available
+                            model.splitRatio = min(0.8, max(0.2, model.splitRatio + delta / 12))
+                        })
+            )
     }
 }
 
