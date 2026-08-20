@@ -12,7 +12,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
 [![Tests](https://img.shields.io/badge/tests-96%20passing-6CCB5F?style=flat-square)](#tests)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
 
@@ -268,10 +268,16 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<
 
 ## Credits
 
-**Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)**, [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse)
+**Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)**, [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse) and [github.com/gmazaratti](https://github.com/gmazaratti)
 
 Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. All artwork in this project is original: the app icon is drawn from scratch by `Tools/MakeIcon.swift`, and the in-app iconography is original vector work laid out on Fluent's design grid.
 
 ## License
 
-[MIT](LICENSE) (c) Alex Degryse
+[Apache License 2.0](LICENSE), copyright 2026 Alex Degryse.
+
+You are free to use, modify and redistribute it, including commercially. In
+return the licence requires that the [NOTICE](NOTICE) file travels with any copy
+or derivative you distribute, which credits Alex Degryse and links back to this
+repository. If you ship it inside an app, that notice belongs in your
+acknowledgements screen.

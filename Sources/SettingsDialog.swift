@@ -365,7 +365,8 @@ extension SettingsDialog {
                      Written in Swift with AppKit and SwiftUI. The Fluent icons are \
                      redrawn as vector geometry on Windows' own 16pt design grid, \
                      because the Segoe Fluent Icons font isn't available on macOS. \
-                     Not affiliated with Microsoft.
+                     Licensed under Apache 2.0: redistribute it freely, but keep the \
+                     credit with it. Not affiliated with Microsoft.
                      """)
                     .font(Win.body(11))
                     .foregroundStyle(Win.textTertiary)
