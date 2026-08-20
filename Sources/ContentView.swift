@@ -95,6 +95,9 @@ struct ContentView: View {
                 if let first = ex.tab.items.first { ex.sheet = .properties([first]) }
             case "dialog:settings":
                 ex.sheet = .settings
+            case "drop":
+                DropHighlight.forceOn = true
+                ex.reload()
             case "dialog:about":
                 SettingsDialog.initialTab = 4
                 ex.sheet = .settings

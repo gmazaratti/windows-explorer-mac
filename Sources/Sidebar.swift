@@ -99,6 +99,7 @@ struct NavRow: View {
     let selected: Bool
     let expanded: Bool
     @State private var hovering = false
+    @State private var dropTargeted = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -158,13 +159,15 @@ struct NavRow: View {
                     .padding(.leading, 1)
             }
         }
+        .dropHighlight(dropTargeted)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture {
             if let loc = node.location { ex.go(to: loc) }
         }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        .onDrop(of: [.fileURL], isTargeted: node.url != nil ? $dropTargeted : nil) { providers in
             guard let dest = node.url else { return false }
+            dropTargeted = false
             return DropHandler.handle(providers: providers, into: dest, ex: ex)
         }
         .onRightClick { p in

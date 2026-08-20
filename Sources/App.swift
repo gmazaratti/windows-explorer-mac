@@ -85,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildMenu()
         Settings.shared.applyTheme()
         let env = ProcessInfo.processInfo.environment
+        if env["WINEXP_TEST"] == "drop" { DropHighlight.forceOn = true }
         let start: Location = env["WINEXP_START"].map { .folder(URL(fileURLWithPath: $0)) } ?? .home
         AppState.shared.openNewWindow(at: start)
         installKeyHandler()

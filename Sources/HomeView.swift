@@ -120,6 +120,7 @@ struct QuickTile: View {
     let place: Place
     @ObservedObject var ex: Explorer
     @State private var hovering = false
+    @State private var dropTargeted = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -145,12 +146,14 @@ struct QuickTile: View {
         .padding(.horizontal, 10)
         .frame(height: 62)
         .background(WinRR(radius: 4).fill(hovering ? Win.subtleHover : .clear))
+        .dropHighlight(dropTargeted)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture(count: 2) { if let u = place.url { ex.go(to: u) } }
         .onTapGesture(count: 1) { if let u = place.url { ex.go(to: u) } }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        .onDrop(of: [.fileURL], isTargeted: place.url != nil ? $dropTargeted : nil) { providers in
             guard let u = place.url else { return false }
+            dropTargeted = false
             return DropHandler.handle(providers: providers, into: u, ex: ex)
         }
     }

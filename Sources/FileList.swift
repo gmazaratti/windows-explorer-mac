@@ -102,6 +102,7 @@ struct FileArea: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
     @ObservedObject var prefs = Prefs.shared
+    @State private var dropTargeted = false
 
     var body: some View {
         ZStack {
@@ -130,8 +131,15 @@ struct FileArea: View {
                     RightClickRouter.shared.contentFrame = f
                 }
         })
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        .overlay(
+            Rectangle()
+                .strokeBorder(Win.accent.opacity(dropTargeted ? 0.85 : 0), lineWidth: 2)
+                .animation(.easeOut(duration: 0.15), value: dropTargeted)
+                .allowsHitTesting(false)
+        )
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             guard let dir = ex.currentDirectory else { return false }
+            dropTargeted = false
             return DropHandler.handle(providers: providers, into: dir, ex: ex)
         }
         .onReceive(NotificationCenter.default.publisher(for: .backgroundContextMenu)) { note in
@@ -168,9 +176,13 @@ struct ItemInteraction: ViewModifier {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
     let item: FileItem
+    @State private var dropTargeted = false
+
+    private var acceptsDrop: Bool { item.isDirectory && !item.isPackage }
 
     func body(content: Content) -> some View {
         content
+            .dropHighlight(dropTargeted)
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { ex.open(item) }
             .onTapGesture(count: 1) {
@@ -195,10 +207,37 @@ struct ItemInteraction: ViewModifier {
                 }
                 return NSItemProvider(object: item.url as NSURL)
             }
-            .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-                guard item.isDirectory && !item.isPackage else { return false }
+            .onDrop(of: [.fileURL], isTargeted: acceptsDrop ? $dropTargeted : nil) { providers in
+                guard acceptsDrop else { return false }
+                dropTargeted = false
                 return DropHandler.handle(providers: providers, into: item.url, ex: ex)
             }
+    }
+}
+
+/// The accent wash and outline Explorer paints on whatever you are about to
+/// drop onto.
+struct DropHighlight: ViewModifier {
+    static var forceOn = false
+    let active: Bool
+    var radius: CGFloat = 4
+
+    func body(content: Content) -> some View {
+        content
+            .background(WinRR(radius: radius).fill(Win.accent.opacity((active || DropHighlight.forceOn) ? 0.22 : 0)))
+            .overlay(
+                WinRR(radius: radius)
+                    .strokeBorder(Win.accent.opacity((active || DropHighlight.forceOn) ? 0.95 : 0), lineWidth: 1.5)
+                    .allowsHitTesting(false)
+            )
+            .scaleEffect((active || DropHighlight.forceOn) ? 1.012 : 1)
+            .animation(.easeOut(duration: 0.15), value: active)
+    }
+}
+
+extension View {
+    func dropHighlight(_ active: Bool, radius: CGFloat = 4) -> some View {
+        modifier(DropHighlight(active: active, radius: radius))
     }
 }
 
@@ -258,10 +297,6 @@ struct DetailsView: View {
                     if let t = target { withAnimation(.linear(duration: 0.08)) { proxy.scrollTo(t, anchor: .center) } }
                 }
             }
-        }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            guard let dir = ex.currentDirectory else { return false }
-            return DropHandler.handle(providers: providers, into: dir, ex: ex)
         }
     }
 
@@ -447,10 +482,6 @@ struct IconGridView: View {
             .onChange(of: ex.tab.scrollTarget) { _, t in
                 if let t { proxy.scrollTo(t, anchor: .center) }
             }
-        }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            guard let dir = ex.currentDirectory else { return false }
-            return DropHandler.handle(providers: providers, into: dir, ex: ex)
         }
     }
 }

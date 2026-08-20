@@ -121,9 +121,18 @@ enum Win {
 }
 
 /// Rounded rect matching Win11's corner radii.
-struct WinRR: Shape {
+struct WinRR: Shape, InsettableShape {
     var radius: CGFloat = Win.M.corner
+    var insetAmount: CGFloat = 0
+
     func path(in rect: CGRect) -> Path {
-        Path(roundedRect: rect, cornerRadius: radius, style: .continuous)
+        Path(roundedRect: rect.insetBy(dx: insetAmount, dy: insetAmount),
+             cornerRadius: max(0, radius - insetAmount), style: .continuous)
+    }
+
+    func inset(by amount: CGFloat) -> some InsettableShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
     }
 }
