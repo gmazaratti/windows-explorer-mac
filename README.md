@@ -193,6 +193,9 @@ Sources/
   ContentView.swift    Root layout, flyout and dialog hosting
   App.swift            Window setup, key bindings, menu bar
   SelfTest.swift       End-to-end checks
+Tools/
+  MakeIcon.swift       Draws the app icon, one render per icon-set size
+  release.sh           Signs, notarizes and staples a release build
 build.sh               Compiles and assembles the .app bundle
 ```
 
@@ -223,7 +226,7 @@ Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<
 
 **Created by [Alex Degryse](https://www.linkedin.com/in/alexdegryse)**, [linkedin.com/in/alexdegryse](https://www.linkedin.com/in/alexdegryse)
 
-Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. The app icon is a Windows Explorer icon, included for personal use. The in-app iconography is original vector work drawn to match Fluent's design grid.
+Not affiliated with or endorsed by Microsoft. Windows, Windows 11, File Explorer, Segoe and Fluent are trademarks of Microsoft Corporation. All artwork in this project is original: the app icon is drawn from scratch by `Tools/MakeIcon.swift`, and the in-app iconography is original vector work laid out on Fluent's design grid.
 
 ## License
 
