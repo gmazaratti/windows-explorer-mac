@@ -278,7 +278,7 @@ struct AccentOption: Identifiable, Hashable {
 
 final class Settings: ObservableObject {
     static let shared = Settings()
-    private let d = UserDefaults.standard
+    private let d = Store.defaults
 
     @Published var theme: ThemeMode { didSet { save(); applyTheme() } }
     @Published var accentID: String { didSet { save() } }

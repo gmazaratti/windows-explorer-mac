@@ -8,14 +8,28 @@ NAME="File Explorer"
 BUNDLE_ID="com.winexplorer.mac"
 VERSION="1.0"
 
+# Pass --universal to build a binary that also runs on Intel Macs.
+UNIVERSAL=0
+[ "$1" = "--universal" ] && UNIVERSAL=1
+
 echo "==> Compiling"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-swiftc -O -whole-module-optimization \
-    -target arm64-apple-macos14.0 \
-    Sources/*.swift \
-    -o "$APP/Contents/MacOS/FileExplorer"
+compile() {  # <target-triple> <output>
+    swiftc -O -whole-module-optimization -target "$1" Sources/*.swift -o "$2"
+}
+
+if [ "$UNIVERSAL" = "1" ]; then
+    compile arm64-apple-macos14.0 build/FileExplorer-arm64
+    compile x86_64-apple-macos14.0 build/FileExplorer-x86_64
+    lipo -create -output "$APP/Contents/MacOS/FileExplorer" \
+        build/FileExplorer-arm64 build/FileExplorer-x86_64
+    rm -f build/FileExplorer-arm64 build/FileExplorer-x86_64
+    echo "    universal: $(lipo -archs "$APP/Contents/MacOS/FileExplorer")"
+else
+    compile arm64-apple-macos14.0 "$APP/Contents/MacOS/FileExplorer"
+fi
 
 echo "==> Building icon"
 ICONSET="build/AppIcon.iconset"

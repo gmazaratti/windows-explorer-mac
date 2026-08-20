@@ -369,9 +369,24 @@ enum Loader {
 
 // MARK: - Preferences
 
+/// Where preferences live. Test and demo runs get their own scratch domain so
+/// they can never disturb the settings of a real install.
+enum Store {
+    static let defaults: UserDefaults = {
+        let env = ProcessInfo.processInfo.environment
+        guard env["WINEXP_SELFTEST"] != nil || env["WINEXP_DEMO"] != nil else {
+            return .standard
+        }
+        let suite = "com.winexplorer.mac.scratch"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        return defaults
+    }()
+}
+
 final class Prefs: ObservableObject {
     static let shared = Prefs()
-    private let d = UserDefaults.standard
+    private let d = Store.defaults
 
     @Published var showHidden: Bool { didSet { d.set(showHidden, forKey: "showHidden") } }
     @Published var showExtensions: Bool { didSet { d.set(showExtensions, forKey: "showExtensions") } }

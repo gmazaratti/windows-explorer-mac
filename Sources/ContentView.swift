@@ -70,6 +70,15 @@ struct ContentView: View {
             .background(Win.chrome)
             .ignoresSafeArea(.all, edges: .all)
             .onAppear { runTestHook() }
+            .onReceive(NotificationCenter.default.publisher(for: .demoShowMenu)) { _ in
+                guard AppState.shared.explorer(for: NSApp.keyWindow) === ex else { return }
+                menus.show(id: "demo", anchor: .zero, entries: ContextMenus.item(ex),
+                           width: 260, iconRow: ContextMenus.iconRow(ex),
+                           point: CGPoint(x: 430, y: 250))
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .demoCloseMenu)) { _ in
+                menus.close()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .explorerCommand)) { note in
                 if let cmd = note.object as? ExplorerCommand { handle(cmd) }
             }

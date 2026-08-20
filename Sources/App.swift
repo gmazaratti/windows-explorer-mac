@@ -93,6 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if env["WINEXP_SELFTEST"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { SelfTest.run() }
         }
+        if let dir = env["WINEXP_DEMO"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { Demo.run(into: dir) }
+        }
         if let path = env["WINEXP_SNAPSHOT"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { self.snapshot(to: path) }
         }

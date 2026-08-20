@@ -14,7 +14,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Tests](https://img.shields.io/badge/tests-49%20passing-6CCB5F?style=flat-square)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
-<img src="docs/home.png" width="900" alt="The Home page with Quick access and Recent">
+<img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
 
 </div>
 
@@ -39,6 +39,21 @@ So I built it. No Electron, no dependencies, no package manager. One `swiftc` in
 <img src="docs/context-menu.png" width="440" alt="Windows 11 context menu"> <img src="docs/light.png" width="440" alt="Light theme with a green accent">
 </div>
 
+## Download
+
+Grab the latest build from [Releases](https://github.com/gmazaratti/windows-explorer-mac/releases/latest). Universal binary, Apple Silicon and Intel, macOS 14 or newer.
+
+The app is ad-hoc signed but **not notarized**, because notarization requires a paid Apple Developer account. macOS will therefore refuse to open it the first time. Either:
+
+- **System Settings > Privacy & Security**, scroll down to the message about File Explorer, and click **Open Anyway**, or
+- clear the quarantine flag yourself:
+
+  ```bash
+  xattr -dr com.apple.quarantine "/Applications/File Explorer.app"
+  ```
+
+If you would rather not do either, build it from source. That takes one command and produces a binary macOS trusts, because it never came from the internet.
+
 ## Build
 
 Requires only the Xcode Command Line Tools. No Xcode project, no Node, no Homebrew.
@@ -49,6 +64,8 @@ cd windows-explorer-mac
 ./build.sh
 open "build/File Explorer.app"
 ```
+
+`./build.sh --universal` produces an Apple Silicon and Intel binary, which is what the releases ship.
 
 To keep it around:
 
