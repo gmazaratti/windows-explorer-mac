@@ -90,6 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyMonitor: Any?
     private var scrollMonitor: Any?
     private var rightClickMonitor: Any?
+    private var marqueeMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -180,6 +181,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let ex = AppState.shared.active else { return event }
             return Keys.handle(event, ex: ex, editingText: self.editingText) ? nil : event
+        }
+        marqueeMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { event in
+            MarqueeController.shared.handle(event) ? nil : event
         }
         rightClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { event in
             RightClickRouter.shared.route(event) ? nil : event

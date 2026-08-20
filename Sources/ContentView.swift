@@ -42,6 +42,8 @@ struct ContentView: View {
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
                 .clipped()
 
+                MarqueeOverlay()
+
                 // Flyout menus
                 if let open = menus.open {
                     Color.black.opacity(0.001)
@@ -129,6 +131,17 @@ struct ContentView: View {
             case "commands":
                 SettingsDialog.initialTab = 4
                 ex.sheet = .settings
+            case "marquee":
+                let marquee = MarqueeController.shared
+                if let zone = marquee.zone(for: ex), zone.frame.height > 120 {
+                    // Start below the last row, which is where empty space is.
+                    let lowest = zone.items.values.map(\.maxY).max() ?? zone.frame.minY
+                    let start = CGPoint(x: zone.frame.minX + 30,
+                                        y: min(zone.frame.maxY - 16, lowest + 34))
+                    _ = marquee.begin(at: start, additive: false)
+                    marquee.update(to: CGPoint(x: zone.frame.minX + 420,
+                                               y: zone.frame.minY + 24))
+                }
             case "drop":
                 DropHighlight.forceOn = true
                 ex.reload()

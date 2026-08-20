@@ -191,6 +191,7 @@ enum SelfTest {
 
         checkPanes(root: root, sub: sub)
         checkColumnFitting()
+        checkMarquee(ex: ex, root: root)
         checkBatchRename()
         checkArchives(root: root)
         checkCompare(root: root, sub: sub)
@@ -355,6 +356,60 @@ enum SelfTest {
                                  date: 150, type: 140, size: 90)
         check("a wide pane shows every column",
               wide.date != nil && wide.type != nil && wide.size != nil && wide.name == 300)
+    }
+
+    /// The band selects what it crosses, leaves items alone when it starts on
+    /// one, and adds to the selection when a modifier is held.
+    private static func checkMarquee(ex: Explorer, root: URL) {
+        let marquee = MarqueeController.shared
+        ex.go(to: root)
+        let items = ex.tab.items
+        guard items.count >= 3 else {
+            check("enough items to test the selection band", false)
+            return
+        }
+
+        // A pane 400 wide with three stacked rows.
+        marquee.setZone(CGRect(x: 0, y: 100, width: 400, height: 400), for: ex)
+        var frames: [String: CGRect] = [:]
+        for (index, item) in items.prefix(3).enumerated() {
+            frames[item.id] = CGRect(x: 0, y: 120 + CGFloat(index) * 30, width: 400, height: 28)
+        }
+        marquee.setItems(frames, for: ex)
+        ex.selectNone()
+
+        check("a press on an item does not start a band",
+              !marquee.begin(at: CGPoint(x: 60, y: 130), additive: false))
+
+        check("a press on empty space starts a band",
+              marquee.begin(at: CGPoint(x: 200, y: 460), additive: false))
+        marquee.update(to: CGPoint(x: 40, y: 125))
+        check("the band selects everything it crosses [\(ex.tab.selection.count)]",
+              ex.tab.selection.count == 3)
+        // Rows sit at y 120, 150 and 180, each 28 tall, so a band that only
+        // reaches y 185 crosses the last one alone.
+        marquee.update(to: CGPoint(x: 40, y: 185))
+        check("shrinking the band deselects again [\(ex.tab.selection.count)]",
+              ex.tab.selection.count == 1)
+        marquee.end()
+        check("the band clears when the drag ends", marquee.rect == nil)
+
+        // Holding a modifier adds to what is already selected.
+        ex.selectNone()
+        if let first = items.first { ex.select(first, extend: false, toggle: false) }
+        _ = marquee.begin(at: CGPoint(x: 200, y: 460), additive: true)
+        marquee.update(to: CGPoint(x: 40, y: 185))
+        check("an additive band keeps the earlier selection [\(ex.tab.selection.count)]",
+              ex.tab.selection.count == 2)
+        marquee.end()
+
+        // A press with no drag is just a click on the background.
+        _ = marquee.begin(at: CGPoint(x: 200, y: 460), additive: false)
+        marquee.end()
+        check("clicking empty space clears the selection", ex.tab.selection.isEmpty)
+
+        marquee.setItems([:], for: ex)
+        marquee.setZone(.zero, for: ex)
     }
 
     private static func checkBatchRename() {

@@ -557,6 +557,15 @@ final class Explorer: ObservableObject {
         tab = t
     }
 
+    /// Applies a rubber-band selection on top of whatever it started from.
+    func applyMarquee(_ ids: Set<String>, base: Set<String>) {
+        let combined = base.union(ids)
+        if tab.selection != combined {
+            onInteract?()
+            tab.selection = combined
+        }
+    }
+
     func selectAll() { tab.selection = Set(tab.items.map(\.id)) }
     func selectNone() { tab.selection = [] }
     func invertSelection() {

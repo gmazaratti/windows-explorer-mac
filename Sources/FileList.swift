@@ -143,6 +143,9 @@ struct FileArea: View {
                     RightClickRouter.shared.setContentFrame(f, for: ex)
                 }
         })
+        .onPreferenceChange(ItemFrameKey.self) { frames in
+            MarqueeController.shared.setItems(frames, for: ex)
+        }
         .overlay(
             Rectangle()
                 .strokeBorder(Win.accent.opacity(dropTargeted ? 0.85 : 0), lineWidth: 2)
@@ -196,6 +199,7 @@ struct ItemInteraction: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .marqueeItem(item.id)
             .dropHighlight(dropTargeted)
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { ex.open(item) }
@@ -295,14 +299,12 @@ struct DetailsView: View {
                                        height: rowHeight, columns: columns)
                                 .id(item.id)
                         }
-                        Color.clear
-                            .frame(height: 40)
-                            .contentShape(Rectangle())
-                            .onTapGesture { ex.selectNone() }
+                        Color.clear.frame(height: 40)
                     }
                     .padding(.horizontal, 4)
                     .padding(.top, 2)
                 }
+                .marqueeZone(ex)
                 .onChange(of: ex.tab.scrollTarget) { _, target in
                     if let t = target { withAnimation(.linear(duration: 0.08)) { proxy.scrollTo(t, anchor: .center) } }
                 }
@@ -534,6 +536,7 @@ struct IconGridView: View {
                 }
                 .padding(12)
             }
+            .marqueeZone(ex)
             .onChange(of: ex.tab.scrollTarget) { _, t in
                 if let t { proxy.scrollTo(t, anchor: .center) }
             }
@@ -617,6 +620,7 @@ struct ListFlowView: View {
                 }
                 .padding(12)
             }
+            .marqueeZone(ex)
         }
     }
 }
@@ -677,6 +681,7 @@ struct TilesView: View {
                 .padding(.vertical, 8)
             }
         }
+        .marqueeZone(ex)
     }
 }
 
