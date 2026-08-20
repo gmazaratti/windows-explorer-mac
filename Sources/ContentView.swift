@@ -112,6 +112,11 @@ struct ContentView: View {
                 Prefs.shared.showShelf = true
                 if let first = ex.tab.items.first { Shelf.shared.add([first.url]) }
                 model.right?.go(to: Places.home)
+            case "dual-home":
+                if !model.dual { model.toggleDual() }
+                Prefs.shared.showShelf = true
+                model.left.go(to: .home)
+                model.right?.go(to: .home)
             case "rename":
                 let items = Array(ex.tab.items.prefix(6))
                 if !items.isEmpty { ex.sheet = .batchRename(items) }
@@ -280,6 +285,7 @@ struct PaneView: View {
             FileArea(ex: ex, menus: menus)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .clipped()
         .overlay(alignment: .top) {
             Rectangle().fill(isActive ? Win.accent : Color.clear).frame(height: 2)
         }

@@ -15,7 +15,7 @@ struct HomeView: View {
                     .padding(.top, 10)
 
                 if quickExpanded {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 250, maximum: 460), spacing: 4)],
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 190, maximum: 460), spacing: 4)],
                               alignment: .leading, spacing: 4) {
                         ForEach(quickItems) { place in
                             QuickTile(place: place, ex: ex)
@@ -183,12 +183,26 @@ struct RecentTable: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
+            table(columns: RecentColumns(available: geo.size.width))
+        }
+        .frame(height: 30 + 1 + (rows.isEmpty ? 50 : CGFloat(rows.count) * 44) + 8)
+    }
+
+    private func table(columns: RecentColumns) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
-                Text("Name").frame(width: 320, alignment: .leading).padding(.leading, 40)
-                Text("Date accessed").frame(width: 190, alignment: .leading)
-                Text("Account").frame(width: 160, alignment: .leading)
-                Text("Activity").frame(width: 160, alignment: .leading)
+                Text("Name")
+                    .frame(width: columns.name, alignment: .leading).padding(.leading, 40)
+                if let width = columns.date {
+                    Text("Date accessed").frame(width: width, alignment: .leading)
+                }
+                if let width = columns.account {
+                    Text("Account").frame(width: width, alignment: .leading)
+                }
+                if let width = columns.activity {
+                    Text("Activity").frame(width: width, alignment: .leading)
+                }
                 Spacer(minLength: 0)
             }
             .font(Win.body(12))
@@ -204,10 +218,37 @@ struct RecentTable: View {
                     .padding(.horizontal, 52).padding(.vertical, 16)
             } else {
                 ForEach(rows) { item in
-                    RecentRow(ex: ex, menus: menus, item: item)
+                    RecentRow(ex: ex, menus: menus, item: item, columns: columns)
                 }
             }
         }
+    }
+}
+
+/// The Recent list sheds columns as the pane narrows, so a half-width pane
+/// cannot force the layout wider than the window.
+struct RecentColumns {
+    static let minimumName: CGFloat = 180
+    static let padding: CGFloat = 64
+
+    var name: CGFloat
+    var date: CGFloat?
+    var account: CGFloat?
+    var activity: CGFloat?
+
+    /// Everything the row will actually lay out, padding included.
+    var totalWidth: CGFloat {
+        name + (date ?? 0) + (account ?? 0) + (activity ?? 0) + RecentColumns.padding
+    }
+
+    init(available: CGFloat) {
+        let minimumName: CGFloat = 180
+        var remaining = available - 64
+        name = minimumName
+        if remaining >= minimumName + 190 { date = 190; remaining -= 190 }
+        if remaining >= minimumName + 160 { account = 160; remaining -= 160 }
+        if remaining >= minimumName + 160 { activity = 160; remaining -= 160 }
+        name = max(minimumName, min(320, remaining))
     }
 }
 
@@ -215,6 +256,7 @@ struct RecentRow: View {
     @ObservedObject var ex: Explorer
     @ObservedObject var menus: MenuController
     let item: FileItem
+    var columns: RecentColumns
     @State private var hovering = false
 
     var body: some View {
@@ -228,14 +270,17 @@ struct RecentRow: View {
                         .font(Win.body(11)).foregroundStyle(Win.textSecondary).lineLimit(1)
                 }
             }
-            .frame(width: 320, alignment: .leading)
+            .frame(width: columns.name, alignment: .leading)
             .padding(.leading, 14)
 
-            Text(item.modifiedText)
-                .font(Win.body(12)).foregroundStyle(Win.textSecondary)
-                .frame(width: 190, alignment: .leading)
-            Text("").frame(width: 160)
-            Text("").frame(width: 160)
+            if let width = columns.date {
+                Text(item.modifiedText)
+                    .font(Win.body(12)).foregroundStyle(Win.textSecondary)
+                    .lineLimit(1)
+                    .frame(width: width, alignment: .leading)
+            }
+            if let width = columns.account { Text("").frame(width: width) }
+            if let width = columns.activity { Text("").frame(width: width) }
             Spacer(minLength: 0)
         }
         .frame(height: 44)

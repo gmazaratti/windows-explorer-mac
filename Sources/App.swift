@@ -28,8 +28,14 @@ final class AppState {
 
     @discardableResult
     func openNewWindow(at location: Location = .home) -> NSWindow {
+        // WINEXP_SIZE=1400x900 opens at a given size, for screenshots.
+        var size = NSSize(width: 1135, height: 640)
+        if let spec = ProcessInfo.processInfo.environment["WINEXP_SIZE"] {
+            let parts = spec.split(separator: "x").compactMap { Double($0) }
+            if parts.count == 2 { size = NSSize(width: parts[0], height: parts[1]) }
+        }
         let window = ExplorerWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1135, height: 640),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
         window.title = "File Explorer"

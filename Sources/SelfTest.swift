@@ -190,6 +190,7 @@ enum SelfTest {
         checkRightClickRouting()
 
         checkPanes(root: root, sub: sub)
+        checkColumnFitting()
         checkBatchRename()
         checkArchives(root: root)
         checkCompare(root: root, sub: sub)
@@ -330,6 +331,30 @@ enum SelfTest {
 
         model.toggleDual()
         check("dual pane closes again", !model.dual && model.activeSide == .left)
+    }
+
+    /// A pane must never lay out wider than it is: that is what pushed the
+    /// whole window sideways when two panes were open.
+    private static func checkColumnFitting() {
+        var detailsFit = true
+        var recentFit = true
+        for width in stride(from: 140.0, through: 1600.0, by: 20.0) {
+            let details = DetailColumns(available: CGFloat(width), preferredName: 300,
+                                        date: 150, type: 140, size: 90)
+            if details.totalWidth > CGFloat(width) + 0.5, width >= 200 { detailsFit = false }
+            let recent = RecentColumns(available: CGFloat(width))
+            if recent.totalWidth > CGFloat(width) + 0.5, width >= 280 { recentFit = false }
+        }
+        check("Details columns always fit the pane they are drawn in", detailsFit)
+        check("the Recent list always fits the pane it is drawn in", recentFit)
+
+        let narrow = DetailColumns(available: 300, preferredName: 300,
+                                   date: 150, type: 140, size: 90)
+        check("a narrow pane keeps Name and Date", narrow.date != nil && narrow.type == nil)
+        let wide = DetailColumns(available: 1200, preferredName: 300,
+                                 date: 150, type: 140, size: 90)
+        check("a wide pane shows every column",
+              wide.date != nil && wide.type != nil && wide.size != nil && wide.name == 300)
     }
 
     private static func checkBatchRename() {

@@ -11,7 +11,7 @@ Same layout, same Fluent iconography, same keyboard shortcuts, driving the real 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-000000?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-4CC2FF?style=flat-square)](#build)
-[![Tests](https://img.shields.io/badge/tests-85%20passing-6CCB5F?style=flat-square)](#tests)
+[![Tests](https://img.shields.io/badge/tests-89%20passing-6CCB5F?style=flat-square)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
 <img src="docs/demo.gif" width="900" alt="Browsing folders, switching view modes, the context menu, and changing theme and accent colour">
@@ -254,7 +254,7 @@ WINEXP_SELFTEST=1 "build/File Explorer.app/Contents/MacOS/FileExplorer"
 
 Creates a scratch folder and drives the **real** key handler and file operations through copy, cut, paste, undo, rename, delete, restore, navigation, tabs, view modes, type-ahead, sorting, search, shortcut re-mapping, pinning, folder icons and right-click routing. **49 checks.**
 
-Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|rename|archive|compare|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
+Development helpers: `WINEXP_START=<path>` opens at a folder, `WINEXP_SNAPSHOT=<file.png>` writes a screenshot of the window, `WINEXP_SIZE=1400x900` opens at a given size, `WINEXP_TEST=menu:context|dialog:settings|dialog:about|dual|dual-home|rename|archive|compare|drop` opens a particular menu, dialog or layout for inspection, and `WINEXP_DEMO=<dir>` drives the scripted tour that produces the animation at the top of this page.
 
 ## Deliberate differences
 

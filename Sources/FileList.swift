@@ -277,27 +277,10 @@ struct DetailsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            content(columns: layout(for: geo.size.width))
+            content(columns: DetailColumns(available: geo.size.width,
+                                           preferredName: nameWidth,
+                                           date: dateWidth, type: typeWidth, size: sizeWidth))
         }
-    }
-
-    /// Columns drop out as the pane narrows, rather than overflowing it.
-    /// Date survives longest after Name, then Size, then Type.
-    private func layout(for width: CGFloat) -> DetailColumns {
-        let minimumName: CGFloat = 120
-        var remaining = width - 26
-        var columns = DetailColumns(name: minimumName)
-        if remaining >= minimumName + dateWidth {
-            columns.date = dateWidth; remaining -= dateWidth
-        }
-        if remaining >= minimumName + sizeWidth {
-            columns.size = sizeWidth; remaining -= sizeWidth
-        }
-        if remaining >= minimumName + typeWidth {
-            columns.type = typeWidth; remaining -= typeWidth
-        }
-        columns.name = max(minimumName, min(nameWidth, remaining))
-        return columns
     }
 
     private func content(columns: DetailColumns) -> some View {
@@ -401,12 +384,40 @@ struct ColumnHeader: View {
     }
 }
 
-/// Which columns the Details view has room for.
+/// Which columns the Details view has room for. Columns drop out as the pane
+/// narrows rather than overflowing it, which would shove the whole window
+/// layout sideways. Date survives longest after Name, then Size, then Type.
 struct DetailColumns: Equatable {
+    static let minimumName: CGFloat = 120
+    static let padding: CGFloat = 26
+
     var name: CGFloat
     var date: CGFloat? = nil
     var type: CGFloat? = nil
     var size: CGFloat? = nil
+
+    init(name: CGFloat) { self.name = name }
+
+    init(available: CGFloat, preferredName: CGFloat,
+         date dateWidth: CGFloat, type typeWidth: CGFloat, size sizeWidth: CGFloat) {
+        var remaining = available - DetailColumns.padding
+        name = DetailColumns.minimumName
+        if remaining >= DetailColumns.minimumName + dateWidth {
+            date = dateWidth; remaining -= dateWidth
+        }
+        if remaining >= DetailColumns.minimumName + sizeWidth {
+            size = sizeWidth; remaining -= sizeWidth
+        }
+        if remaining >= DetailColumns.minimumName + typeWidth {
+            type = typeWidth; remaining -= typeWidth
+        }
+        name = max(DetailColumns.minimumName, min(preferredName, remaining))
+    }
+
+    /// Everything the row will actually lay out, padding included.
+    var totalWidth: CGFloat {
+        name + (date ?? 0) + (type ?? 0) + (size ?? 0) + DetailColumns.padding
+    }
 }
 
 struct DetailsRow: View {
